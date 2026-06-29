@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Podešavanja — LexIntake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f0e8;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  nav {
+    background: #0f2744;
+    padding: 0 32px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: #f5f0e8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .nav-logo svg {
+    width: 18px;
+    height: 18px;
+    stroke: #c9a84c;
+    fill: none;
+    stroke-width: 1.5;
+  }
+
+  .nav-desno {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .nav-link {
+    font-size: 13px;
+    color: rgba(245,240,232,0.6);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .nav-link:hover { color: #f5f0e8; }
+
+  .nav-odjava {
+    font-size: 13px;
+    color: rgba(245,240,232,0.4);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    transition: color 0.15s;
+  }
+
+  .nav-odjava:hover { color: #f5f0e8; }
+
+  .sadrzaj {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  .stranica-naslov {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: #0f2744;
+    margin-bottom: 6px;
+  }
+
+  .stranica-podnaslov {
+    font-size: 14px;
+    color: #8a8070;
+    font-weight: 300;
+    margin-bottom: 32px;
+  }
+
+  .kartica {
+    background: #ffffff;
+    border: 1px solid rgba(15,39,68,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .kartica-zaglavlje {
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(15,39,68,0.08);
+  }
+
+  .kartica-naslov {
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f2744;
+  }
+
+  .kartica-opis {
+    font-size: 13px;
+    color: #8a8070;
+    font-weight: 300;
+    margin-top: 3px;
+  }
+
+  .kartica-telo {
+    padding: 24px;
+  }
+
+  .polje-grupa {
+    margin-bottom: 18px;
+  }
+
+  .polje-red {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .polje-oznaka {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #3d3830;
+    margin-bottom: 6px;
+  }
+
+  .polje-unos {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid rgba(15,39,68,0.15);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: #1a1610;
+    background: #fafaf8;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .polje-unos:focus {
+    border-color: #0f2744;
+    box-shadow: 0 0 0 3px rgba(15,39,68,0.06);
+    background: #ffffff;
+  }
+
+  .polje-unos:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .polje-unos::placeholder { color: #b8b0a4; }
+
+  .polje-napomena {
+    font-size: 11px;
+    color: #8a8070;
+    margin-top: 5px;
+    font-weight: 300;
+  }
+
+  .kartica-podnozje {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(15,39,68,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fafaf8;
+  }
+
+  .uspeh-poruka {
+    font-size: 13px;
+    color: #16a34a;
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .uspeh-poruka.vidljivo { display: flex; }
+  .uspeh-poruka svg {
+    width: 14px;
+    height: 14px;
+    stroke: #16a34a;
+    fill: none;
+    stroke-width: 2.5;
+  }
+
+  .greska-poruka-gl {
+    font-size: 13px;
+    color: #dc2626;
+    display: none;
+  }
+
+  .greska-poruka-gl.vidljivo { display: block; }
+
+  .dugme-sacuvaj {
+    padding: 9px 22px;
+    background: #0f2744;
+    color: #f5f0e8;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dugme-sacuvaj:hover { background: #1a3a5c; }
+  .dugme-sacuvaj:disabled { background: #8a8070; cursor: not-allowed; }
+
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(245,240,232,0.3);
+    border-top-color: #f5f0e8;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .link-kartica {
+    background: #ffffff;
+    border: 1px solid rgba(15,39,68,0.1);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  .link-naslov {
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f2744;
+    margin-bottom: 4px;
+  }
+
+  .link-opis {
+    font-size: 13px;
+    color: #8a8070;
+    font-weight: 300;
+    margin-bottom: 14px;
+  }
+
+  .link-red {
+    display: flex;
+    gap: 8px;
+  }
+
+  .link-polje {
+    flex: 1;
+    padding: 9px 13px;
+    border: 1px solid rgba(15,39,68,0.15);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    color: #1a1610;
+    background: #fafaf8;
+    outline: none;
+  }
+
+  .dugme-kopiraj {
+    padding: 9px 16px;
+    background: #0f2744;
+    color: #f5f0e8;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+
+  .dugme-kopiraj:hover { background: #1a3a5c; }
+  .dugme-kopiraj.kopiran { background: #16a34a; }
+
+  .odjava-zona {
+    background: #ffffff;
+    border: 1px solid rgba(220,38,38,0.15);
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .odjava-info {}
+  .odjava-naslov { font-size: 14px; font-weight: 500; color: #1a1610; margin-bottom: 3px; }
+  .odjava-opis { font-size: 13px; color: #8a8070; font-weight: 300; }
+
+  .dugme-odjava {
+    padding: 9px 20px;
+    background: transparent;
+    color: #dc2626;
+    border: 1px solid rgba(220,38,38,0.3);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+
+  .dugme-odjava:hover { background: #fee2e2; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="tabla.html" class="nav-logo">
+    <svg viewBox="0 0 24 24"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
+    LexIntake
+  </a>
+  <div class="nav-desno">
+    <a href="tabla.html" class="nav-link">Kontrolna tabla</a>
+    <button class="nav-odjava" onclick="odjava()">Odjava</button>
+  </div>
+</nav>
+
+<div class="sadrzaj">
+  <div class="stranica-naslov">Podešavanja</div>
+  <div class="stranica-podnaslov">Upravljajte podacima vaše kancelarije i naloga</div>
+
+  <div class="kartica">
+    <div class="kartica-zaglavlje">
+      <div class="kartica-naslov">Podaci kancelarije</div>
+      <div class="kartica-opis">Ovi podaci se prikazuju klijentima u upitniku</div>
+    </div>
+    <div class="kartica-telo">
+      <div class="polje-red">
+        <div>
+          <label class="polje-oznaka">Ime i prezime *</label>
+          <input class="polje-unos" type="text" id="ime" placeholder="Nikola Marković">
+        </div>
+        <div>
+          <label class="polje-oznaka">Telefon</label>
+          <input class="polje-unos" type="tel" id="telefon" placeholder="063 555 444">
+        </div>
+      </div>
+      <div class="polje-grupa">
+        <label class="polje-oznaka">Naziv kancelarije</label>
+        <input class="polje-unos" type="text" id="kancelarija" placeholder="Advokatska kancelarija Marković">
+      </div>
+      <div class="polje-grupa">
+        <label class="polje-oznaka">Email adresa</label>
+        <input class="polje-unos" type="email" id="email" disabled>
+        <div class="polje-napomena">Email adresa se ne može menjati</div>
+      </div>
+    </div>
+    <div class="kartica-podnozje">
+      <div>
+        <div class="uspeh-poruka" id="uspehPoruka">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Podaci su uspešno sačuvani
+        </div>
+        <div class="greska-poruka-gl" id="greskaPoruka"></div>
+      </div>
+      <button class="dugme-sacuvaj" id="dugmeSacuvaj" onclick="sacuvajPodatke()">
+        <div class="spinner" id="spinner"></div>
+        <span id="dugmeTekst">Sačuvaj izmene</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="link-kartica">
+    <div class="link-naslov">Vaš link za upitnik</div>
+    <div class="link-opis">Podelite ovaj link sa klijentima — putem Vibera, WhatsApp-a ili na vašem sajtu</div>
+    <div class="link-red">
+      <input class="link-polje" type="text" id="linkUpitnik" readonly>
+      <button class="dugme-kopiraj" id="dugmeKopiraj" onclick="kopirajLink()">Kopiraj link</button>
+    </div>
+  </div>
+
+  <div class="odjava-zona">
+    <div class="odjava-info">
+      <div class="odjava-naslov">Odjava sa naloga</div>
+      <div class="odjava-opis">Bićete preusmereni na stranicu za prijavu</div>
+    </div>
+    <button class="dugme-odjava" onclick="odjava()">Odjavite se</button>
+  </div>
+
+</div>
+
+<script>
+  const API_URL = "http://localhost:8000";
+
+  const token = localStorage.getItem('lex_token');
+  const advokatId = localStorage.getItem('lex_advokat_id');
+  if (!token || !advokatId) {
+    window.location.href = 'prijava.html';
+  }
+
+  const linkUpitnik = `http://localhost:3000/pages/upitnik.html?advokat=${advokatId}`;
+  document.getElementById('linkUpitnik').value = linkUpitnik;
+
+  async function ucitajPodatke() {
+    try {
+      const odg = await fetch(`${API_URL}/auth/ja`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!odg.ok) {
+        odjava();
+        return;
+      }
+
+      const podaci = await odg.json();
+      document.getElementById('ime').value = podaci.ime || '';
+      document.getElementById('telefon').value = podaci.telefon || '';
+      document.getElementById('kancelarija').value = podaci.naziv_kancelarije || '';
+      document.getElementById('email').value = podaci.email || '';
+
+    } catch (e) {
+      document.getElementById('greskaPoruka').textContent = 'Greška pri učitavanju podataka.';
+      document.getElementById('greskaPoruka').classList.add('vidljivo');
+    }
+  }
+
+  async function sacuvajPodatke() {
+    const dugme = document.getElementById('dugmeSacuvaj');
+    const spinner = document.getElementById('spinner');
+    const dugmeTekst = document.getElementById('dugmeTekst');
+    const uspeh = document.getElementById('uspehPoruka');
+    const greska = document.getElementById('greskaPoruka');
+
+    uspeh.classList.remove('vidljivo');
+    greska.classList.remove('vidljivo');
+
+    dugme.disabled = true;
+    spinner.style.display = 'block';
+    dugmeTekst.textContent = 'Čuvanje...';
+
+    const telo = {
+    ime: document.getElementById('ime').value.trim(),
+    telefon: document.getElementById('telefon').value.trim() || null,
+    naziv_kancelarije: document.getElementById('kancelarija').value.trim() || null
+    };
+    console.log('Šaljem:', JSON.stringify(telo));
+
+    try {
+      const odg = await fetch(`${API_URL}/auth/azuriraj/${advokatId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(telo)
+      });
+
+      if (!odg.ok) throw new Error();
+
+      const podaci = await odg.json();
+      localStorage.setItem('lex_ime', podaci.ime);
+      uspeh.classList.add('vidljivo');
+      setTimeout(() => uspeh.classList.remove('vidljivo'), 3000);
+
+    } catch (e) {
+      greska.textContent = 'Greška pri čuvanju. Pokušajte ponovo.';
+      greska.classList.add('vidljivo');
+    } finally {
+      dugme.disabled = false;
+      spinner.style.display = 'none';
+      dugmeTekst.textContent = 'Sačuvaj izmene';
+    }
+  }
+
+  function kopirajLink() {
+    const input = document.getElementById('linkUpitnik');
+    navigator.clipboard.writeText(input.value).then(() => {
+      const dugme = document.getElementById('dugmeKopiraj');
+      dugme.textContent = 'Kopirano!';
+      dugme.classList.add('kopiran');
+      setTimeout(() => {
+        dugme.textContent = 'Kopiraj link';
+        dugme.classList.remove('kopiran');
+      }, 2000);
+    });
+  }
+
+  function odjava() {
+    localStorage.clear();
+    window.location.href = 'prijava.html';
+  }
+
+  ucitajPodatke();
+</script>
+</body>
+</html>

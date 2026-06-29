@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kontrolna tabla — LexIntake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f0e8;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  nav {
+    background: #0f2744;
+    padding: 0 32px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: #f5f0e8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nav-logo svg {
+    width: 18px;
+    height: 18px;
+    stroke: #c9a84c;
+    fill: none;
+    stroke-width: 1.5;
+  }
+
+  .nav-info {
+    font-size: 13px;
+    color: rgba(245,240,232,0.5);
+  }
+
+  /* SADRZAJ */
+  .sadrzaj {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  .statistike {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .stat-kartica {
+    background: #ffffff;
+    border: 1px solid rgba(15,39,68,0.1);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .stat-oznaka {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8a8070;
+    margin-bottom: 8px;
+  }
+
+  .stat-vrednost {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 500;
+    color: #0f2744;
+  }
+
+  .stat-delta {
+    font-size: 12px;
+    color: #16a34a;
+    margin-top: 3px;
+  }
+
+  /* TABELA */
+  .tabela-kartica {
+    background: #ffffff;
+    border: 1px solid rgba(15,39,68,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .tabela-zaglavlje {
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(15,39,68,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tabela-naslov {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 500;
+    color: #0f2744;
+  }
+
+  .tabela-broj {
+    font-size: 13px;
+    color: #8a8070;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    padding: 10px 20px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8a8070;
+    background: #fafaf8;
+    border-bottom: 1px solid rgba(15,39,68,0.08);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(15,39,68,0.06);
+    transition: background 0.12s;
+    cursor: pointer;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #fafaf8; }
+
+  tbody td {
+    padding: 14px 20px;
+    font-size: 14px;
+    color: #3d3830;
+    vertical-align: middle;
+  }
+
+  .klijent-ime {
+    font-weight: 500;
+    color: #1a1610;
+    display: block;
+  }
+
+  .klijent-kontakt {
+    font-size: 12px;
+    color: #8a8070;
+    margin-top: 2px;
+    display: block;
+  }
+
+  .oznaka-status {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    display: inline-block;
+  }
+
+  .status-novi { background: #e8f0fb; color: #0c447c; }
+  .status-na_pregledu { background: #fef3c7; color: #92400e; }
+  .status-zakazano { background: #dcfce7; color: #166534; }
+  .status-zatvoreno { background: #f3f4f6; color: #6b7280; }
+
+  .oznaka-urgentnost {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    display: inline-block;
+  }
+
+  .urgentnost-visoka { background: #fee2e2; color: #991b1b; }
+  .urgentnost-srednja { background: #fef3c7; color: #92400e; }
+  .urgentnost-niska { background: #dcfce7; color: #166534; }
+
+  .dugme-pregled {
+    font-size: 12px;
+    color: #0f2744;
+    border: 1px solid rgba(15,39,68,0.25);
+    border-radius: 6px;
+    padding: 5px 12px;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.12s;
+  }
+  .dugme-pregled:hover { background: #f0f4f8; }
+
+  .prazno {
+    padding: 64px 24px;
+    text-align: center;
+    color: #8a8070;
+  }
+  .prazno svg {
+    width: 40px;
+    height: 40px;
+    stroke: #ede7d9;
+    fill: none;
+    stroke-width: 1.2;
+    margin-bottom: 16px;
+  }
+  .prazno p { font-size: 14px; font-weight: 300; }
+
+  .modal-pozadina {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,39,68,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-pozadina.vidljivo { display: flex; }
+
+  .modal {
+    background: #ffffff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 620px;
+    max-height: 88vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 40px rgba(15,39,68,0.2);
+  }
+
+  .modal-zaglavlje {
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(15,39,68,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: #ffffff;
+    z-index: 1;
+  }
+
+  .modal-naslov {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: #0f2744;
+  }
+
+  .dugme-zatvori {
+    width: 32px;
+    height: 32px;
+    background: #f5f0e8;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s;
+  }
+  .dugme-zatvori:hover { background: #ede7d9; }
+  .dugme-zatvori svg {
+    width: 14px;
+    height: 14px;
+    stroke: #3d3830;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .modal-telo { padding: 24px; }
+
+  .sekcija-oznaka {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #8a8070;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(15,39,68,0.08);
+  }
+
+  .polje-red {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .polje {
+    background: #fafaf8;
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+
+  .polje-oznaka {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8a8070;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .polje-vrednost {
+    font-size: 14px;
+    color: #1a1610;
+    line-height: 1.5;
+  }
+
+  .polje.puno { grid-column: 1 / -1; }
+
+  .ai-blok {
+    background: #eef3f8;
+    border-left: 3px solid #0f2744;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    font-size: 14px;
+    color: #0f2744;
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+
+  .urgentnost-traka {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .traka-oznaka { font-size: 12px; color: #8a8070; }
+  .traka-pozadina {
+    flex: 1;
+    height: 5px;
+    background: rgba(15,39,68,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .traka-punjenje {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #22c55e, #f59e0b, #ef4444);
+  }
+  .traka-vrednost { font-size: 12px; font-weight: 500; }
+  .traka-visoka { color: #991b1b; }
+  .traka-srednja { color: #92400e; }
+  .traka-niska { color: #166534; }
+
+  .sekcija-razmak { margin-bottom: 20px; }
+
+  .status-izbornik {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid rgba(15,39,68,0.15);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: #1a1610;
+    background: #fafaf8;
+    outline: none;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  .dugme-sacuvaj {
+    width: 100%;
+    padding: 12px;
+    background: #0f2744;
+    color: #f5f0e8;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background 0.15s;
+  }
+  .dugme-sacuvaj:hover { background: #1a3a5c; }
+
+  .dugme-pdf {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: #0f2744;
+    border: 1px solid rgba(15,39,68,0.25);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+  .dugme-pdf:hover { background: #f0f4f8; }
+
+  .ucitavanje {
+    text-align: center;
+    padding: 48px;
+    color: #8a8070;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <svg viewBox="0 0 24 24"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
+    LexIntake
+  </div>
+  <div class="nav-desno" style="display:flex;align-items:center;gap:20px;">
+  <span style="font-size:13px;color:rgba(245,240,232,0.6);" id="navInfo"></span>
+  <a href="podesavanja.html" style="font-size:13px;color:rgba(245,240,232,0.5);text-decoration:none;transition:color 0.15s;" onmouseover="this.style.color='rgba(245,240,232,0.9)'" onmouseout="this.style.color='rgba(245,240,232,0.5)'">Podešavanja</a>
+  </div>
+</nav>
+
+<div class="sadrzaj">
+
+  <!-- Statistike -->
+  <div class="statistike">
+    <div class="stat-kartica">
+      <div class="stat-oznaka">Ukupno prijema</div>
+      <div class="stat-vrednost" id="statUkupno">—</div>
+    </div>
+    <div class="stat-kartica">
+      <div class="stat-oznaka">Novi</div>
+      <div class="stat-vrednost" id="statNovi">—</div>
+      <div class="stat-delta" id="statNoviDelta"></div>
+    </div>
+    <div class="stat-kartica">
+      <div class="stat-oznaka">Zakazano</div>
+      <div class="stat-vrednost" id="statZakazano">—</div>
+    </div>
+    <div class="stat-kartica">
+      <div class="stat-oznaka">Visoka urgentnost</div>
+      <div class="stat-vrednost" id="statUrgentno">—</div>
+    </div>
+  </div>
+
+  <!-- Tabela prijema -->
+  <div class="tabela-kartica">
+    <div class="tabela-zaglavlje">
+      <div class="tabela-naslov">Prijemi klijenata</div>
+      <div class="tabela-broj" id="tabelaBroj"></div>
+    </div>
+    <div id="tabelaSadrzaj">
+      <div class="ucitavanje">Učitavanje prijema...</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-pozadina" id="modalPozadina" onclick="zatvoriModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-zaglavlje">
+      <div class="modal-naslov" id="modalNaslov">Detalji prijema</div>
+      <button class="dugme-zatvori" onclick="zatvoriModalDugme()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-telo" id="modalTelo">
+      Učitavanje...
+    </div>
+  </div>
+</div>
+
+<script>
+  const token = localStorage.getItem('lex_token');
+  const advokatId = localStorage.getItem('lex_advokat_id');
+  if (!token || !advokatId) {
+    window.location.href = 'prijava.html';
+  }
+
+  const API_URL = "http://localhost:8000";
+  const ADVOKAT_ID = advokatId || 1;
+
+  let sviPrijemi = [];
+  let trenutniPrijemId = null;
+
+  function formatujDatum(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      + ' · ' + d.toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function oznakaStatusa(status) {
+    const mapa = {
+      novi: ['Novi', 'status-novi'],
+      na_pregledu: ['Na pregledu', 'status-na_pregledu'],
+      zakazano: ['Zakazano', 'status-zakazano'],
+      zatvoreno: ['Zatvoreno', 'status-zatvoreno']
+    };
+    const [tekst, klasa] = mapa[status] || ['Nepoznat', ''];
+    return `<span class="oznaka-status ${klasa}">${tekst}</span>`;
+  }
+
+  function oznakaUrgentnosti(u) {
+    const mapa = {
+      visoka: 'urgentnost-visoka',
+      srednja: 'urgentnost-srednja',
+      niska: 'urgentnost-niska'
+    };
+    if (!u) return '—';
+    return `<span class="oznaka-urgentnost ${mapa[u] || ''}">${u.charAt(0).toUpperCase() + u.slice(1)}</span>`;
+  }
+
+  // ── Učitavanje ──
+  async function ucitajPrijeme() {
+    try {
+      const odg = await fetch(`${API_URL}/prijem/lista/${ADVOKAT_ID}`);
+      sviPrijemi = await odg.json();
+      prikaziTabelu();
+      prikaziStatistike();
+    } catch (e) {
+      document.getElementById('tabelaSadrzaj').innerHTML =
+        '<div class="ucitavanje">Greška pri učitavanju. Proverite da li server radi.</div>';
+    }
+  }
+
+  function prikaziStatistike() {
+    const ukupno = sviPrijemi.length;
+    const novi = sviPrijemi.filter(p => p.status === 'novi').length;
+    const zakazano = sviPrijemi.filter(p => p.status === 'zakazano').length;
+    const urgentno = sviPrijemi.filter(p => p.procena_urgentnosti === 'visoka').length;
+
+    document.getElementById('statUkupno').textContent = ukupno;
+    document.getElementById('statNovi').textContent = novi;
+    document.getElementById('statZakazano').textContent = zakazano;
+    document.getElementById('statUrgentno').textContent = urgentno;
+    document.getElementById('navInfo').textContent = localStorage.getItem('lex_ime') || '';
+
+    if (novi > 0) {
+      document.getElementById('statNoviDelta').textContent = `${novi} čeka odgovor`;
+    }
+  }
+
+  function prikaziTabelu() {
+    const el = document.getElementById('tabelaSadrzaj');
+    document.getElementById('tabelaBroj').textContent =
+      `${sviPrijemi.length} ${sviPrijemi.length === 1 ? 'prijem' : 'prijema'}`;
+
+    if (sviPrijemi.length === 0) {
+      el.innerHTML = `
+        <div class="prazno">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <p>Još uvek nema prijema klijenata.</p>
+        </div>`;
+      return;
+    }
+
+    el.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Klijent</th>
+            <th>Oblast prava</th>
+            <th>Datum</th>
+            <th>Status</th>
+            <th>Urgentnost</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sviPrijemi.map(p => `
+            <tr onclick="otvoriModal(${p.id})">
+              <td>
+                <span class="klijent-ime">${p.klijent_ime || 'Nepoznat'}</span>
+                <span class="klijent-kontakt">${p.klijent_email || p.klijent_telefon || '—'}</span>
+              </td>
+              <td>${p.oblast_prava || '—'}</td>
+              <td>${formatujDatum(p.datum_prijema)}</td>
+              <td>${oznakaStatusa(p.status)}</td>
+              <td>${oznakaUrgentnosti(p.procena_urgentnosti)}</td>
+              <td><button class="dugme-pregled" onclick="event.stopPropagation();otvoriModal(${p.id})">Pregled</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  async function otvoriModal(prijem_id) {
+    trenutniPrijemId = prijem_id;
+    document.getElementById('modalPozadina').classList.add('vidljivo');
+    document.getElementById('modalTelo').innerHTML = '<div class="ucitavanje">Učitavanje...</div>';
+
+    try {
+      const odg = await fetch(`${API_URL}/prijem/detalji/${prijem_id}`);
+      const p = await odg.json();
+
+      document.getElementById('modalNaslov').textContent = p.klijent_ime || 'Detalji prijema';
+
+      const sirinaTrake = {visoka: '85%', srednja: '50%', niska: '20%'}[p.procena_urgentnosti] || '50%';
+      const klasaTrake = `traka-${p.procena_urgentnosti || 'srednja'}`;
+
+      document.getElementById('modalTelo').innerHTML = `
+        <div class="sekcija-razmak">
+          <div class="sekcija-oznaka">Kontakt podaci</div>
+          <div class="polje-red">
+            <div class="polje"><span class="polje-oznaka">Ime i prezime</span><span class="polje-vrednost">${p.klijent_ime || '—'}</span></div>
+            <div class="polje"><span class="polje-oznaka">Telefon</span><span class="polje-vrednost">${p.klijent_telefon || '—'}</span></div>
+            <div class="polje"><span class="polje-oznaka">Email</span><span class="polje-vrednost">${p.klijent_email || '—'}</span></div>
+            <div class="polje"><span class="polje-oznaka">Datum prijema</span><span class="polje-vrednost">${formatujDatum(p.datum_prijema)}</span></div>
+          </div>
+        </div>
+
+        <div class="sekcija-razmak">
+          <div class="sekcija-oznaka">Slučaj</div>
+          <div class="polje-red">
+            <div class="polje"><span class="polje-oznaka">Oblast prava</span><span class="polje-vrednost" style="font-weight:500;color:#0f2744">${p.oblast_prava || '—'}</span></div>
+            <div class="polje"><span class="polje-oznaka">Status</span><span class="polje-vrednost">${oznakaStatusa(p.status)}</span></div>
+            <div class="polje puno"><span class="polje-oznaka">Opis problema</span><span class="polje-vrednost">${p.opis_problema || '—'}</span></div>
+            <div class="polje puno"><span class="polje-oznaka">Detalji</span><span class="polje-vrednost">${p.detalji_slucaja || '—'}</span></div>
+            <div class="polje puno"><span class="polje-oznaka">Dokumenti</span><span class="polje-vrednost">${p.dokumenti_napomena || '—'}</span></div>
+          </div>
+        </div>
+
+        <div class="sekcija-razmak">
+          <div class="sekcija-oznaka">AI analiza</div>
+          <div class="ai-blok">${p.ai_analiza || 'Analiza nije dostupna.'}</div>
+          <div class="polje puno" style="margin-top:10px">
+            <span class="polje-oznaka">Preporučeni koraci</span>
+            <span class="polje-vrednost">${p.preporuceni_koraci || '—'}</span>
+          </div>
+          <div class="urgentnost-traka">
+            <span class="traka-oznaka">Urgentnost:</span>
+            <div class="traka-pozadina"><div class="traka-punjenje" style="width:${sirinaTrake}"></div></div>
+            <span class="traka-vrednost ${klasaTrake}">${(p.procena_urgentnosti || 'srednja').charAt(0).toUpperCase() + (p.procena_urgentnosti || 'srednja').slice(1)}</span>
+          </div>
+        </div>
+
+        <div class="sekcija-razmak">
+          <div class="sekcija-oznaka">Promena statusa</div>
+          <select class="status-izbornik" id="statusIzbornik">
+            <option value="novi" ${p.status === 'novi' ? 'selected' : ''}>Novi</option>
+            <option value="na_pregledu" ${p.status === 'na_pregledu' ? 'selected' : ''}>Na pregledu</option>
+            <option value="zakazano" ${p.status === 'zakazano' ? 'selected' : ''}>Zakazano</option>
+            <option value="zatvoreno" ${p.status === 'zatvoreno' ? 'selected' : ''}>Zatvoreno</option>
+          </select>
+          <button class="dugme-sacuvaj" onclick="sacuvajStatus()">Sačuvaj status</button>
+          <button class="dugme-pdf" onclick="preuzmiPdf()">Preuzmi PDF izveštaj</button>
+        </div>
+      `;
+    } catch (e) {
+      document.getElementById('modalTelo').innerHTML = '<div class="ucitavanje">Greška pri učitavanju detalja.</div>';
+    }
+  }
+
+  async function sacuvajStatus() {
+    const status = document.getElementById('statusIzbornik').value;
+    try {
+      await fetch(`${API_URL}/prijem/status/${trenutniPrijemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      await ucitajPrijeme();
+      zatvoriModalDugme();
+    } catch (e) {
+      alert('Greška pri čuvanju statusa.');
+    }
+  }
+
+  function preuzmiPdf() {
+    if (!trenutniPrijemId) return;
+    window.open(`${API_URL}/prijem/pdf/${trenutniPrijemId}`, '_blank');
+  }
+
+  function zatvoriModal(e) {
+    if (e.target === document.getElementById('modalPozadina')) {
+      zatvoriModalDugme();
+    }
+  }
+
+  function zatvoriModalDugme() {
+    document.getElementById('modalPozadina').classList.remove('vidljivo');
+    trenutniPrijemId = null;
+  }
+
+  ucitajPrijeme();
+</script>
+</body>
+</html>

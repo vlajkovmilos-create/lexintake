@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prijem klijenta — LexIntake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f0e8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .kartица {
+    background: #ffffff;
+    border: 1px solid rgba(15,39,68,0.12);
+    border-radius: 16px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 560px;
+    box-shadow: 0 4px 24px rgba(15,39,68,0.08);
+  }
+
+  .zaglavlje {
+    background: #0f2744;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .zaglavlje-avatar {
+    width: 36px;
+    height: 36px;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.35);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .zaglavlje-avatar svg {
+    width: 17px;
+    height: 17px;
+    stroke: #c9a84c;
+    fill: none;
+    stroke-width: 1.8;
+  }
+
+  .zaglavlje-info {}
+  .zaglavlje-naziv {
+    font-size: 14px;
+    font-weight: 500;
+    color: #f5f0e8;
+    font-family: 'Playfair Display', serif;
+  }
+  .zaglavlje-status {
+    font-size: 11px;
+    color: rgba(245,240,232,0.45);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 2px;
+  }
+  .status-tacka {
+    width: 6px;
+    height: 6px;
+    background: #4ade80;
+    border-radius: 50%;
+  }
+
+  .poruke {
+    padding: 20px;
+    min-height: 320px;
+    max-height: 400px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #fafaf8;
+  }
+
+  .poruke::-webkit-scrollbar { width: 4px; }
+  .poruke::-webkit-scrollbar-thumb { background: #ede7d9; border-radius: 2px; }
+
+  .poruka {
+    max-width: 82%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .poruka.asistent {
+    background: #ffffff;
+    border: 1px solid rgba(15,39,68,0.1);
+    color: #1a1610;
+    align-self: flex-start;
+    border-bottom-left-radius: 3px;
+  }
+
+  .poruka.klijent {
+    background: #0f2744;
+    color: rgba(255,255,255,0.9);
+    align-self: flex-end;
+    border-bottom-right-radius: 3px;
+  }
+
+  .kucanje {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 14px;
+    background: #ffffff;
+    border: 1px solid rgba(15,39,68,0.1);
+    border-radius: 12px;
+    border-bottom-left-radius: 3px;
+    width: fit-content;
+  }
+  .kucanje.vidljivo { display: flex; }
+  .kucanje span { font-size: 12px; color: #8a8070; }
+
+  .tacka {
+    width: 5px;
+    height: 5px;
+    background: #0f2744;
+    border-radius: 50%;
+    animation: kucanje-anim 0.9s infinite;
+  }
+  .tacka:nth-child(2) { animation-delay: 0.15s; }
+  .tacka:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes kucanje-anim {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-5px); }
+  }
+
+  .unos-red {
+    padding: 14px;
+    border-top: 1px solid rgba(15,39,68,0.1);
+    display: flex;
+    gap: 8px;
+    background: #ffffff;
+  }
+
+  .unos-polje {
+    flex: 1;
+    border: 1px solid rgba(15,39,68,0.15);
+    border-radius: 8px;
+    padding: 9px 13px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: #1a1610;
+    background: #fafaf8;
+    outline: none;
+    transition: border-color 0.15s;
+    resize: none;
+    height: 40px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .unos-polje:focus { border-color: #0f2744; }
+  .unos-polje:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .dugme-posalji {
+    width: 40px;
+    height: 40px;
+    background: #0f2744;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .dugme-posalji:hover { background: #1a3a5c; }
+  .dugme-posalji:disabled { background: #8a8070; cursor: not-allowed; }
+  .dugme-posalji svg {
+    width: 16px;
+    height: 16px;
+    stroke: #ffffff;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .podnozje {
+    padding: 10px 16px;
+    background: rgba(245,240,232,0.6);
+    border-top: 1px solid rgba(15,39,68,0.08);
+    font-size: 11px;
+    color: #8a8070;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .podnozje svg {
+    width: 12px;
+    height: 12px;
+    stroke: #8a8070;
+    fill: none;
+    stroke-width: 1.5;
+    flex-shrink: 0;
+  }
+
+  /* Ekran za završetak */
+  .zavrseno-ekran {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 32px;
+    text-align: center;
+    background: #fafaf8;
+  }
+
+  .zavrseno-ikona {
+    width: 64px;
+    height: 64px;
+    background: rgba(15,39,68,0.06);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .zavrseno-ikona svg {
+    width: 28px;
+    height: 28px;
+    stroke: #0f2744;
+    fill: none;
+    stroke-width: 1.5;
+  }
+
+  .zavrseno-naslov {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: #0f2744;
+    margin-bottom: 10px;
+  }
+
+  .zavrseno-tekst {
+    font-size: 14px;
+    color: #8a8070;
+    line-height: 1.7;
+    font-weight: 300;
+    max-width: 340px;
+  }
+</style>
+</head>
+<body>
+
+<div class="kartица">
+  <div class="zaglavlje">
+    <div class="zaglavlje-avatar">
+      <svg viewBox="0 0 24 24"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
+    </div>
+    <div class="zaglavlje-info">
+      <div class="zaglavlje-naziv" id="nazivKancelarije">Advokatska kancelarija</div>
+      <div class="zaglavlje-status">
+        <div class="status-tacka"></div>
+        AI asistent · aktivan
+      </div>
+    </div>
+  </div>
+
+  <div class="poruke" id="poruke"></div>
+
+  <div class="kucanje" id="kucanje">
+    <div class="tacka"></div>
+    <div class="tacka"></div>
+    <div class="tacka"></div>
+    <span>Asistent odgovara</span>
+  </div>
+
+  <div class="zavrseno-ekran" id="zavrseno">
+    <div class="zavrseno-ikona">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="zavrseno-naslov">Hvala na poverenju</div>
+    <p class="zavrseno-tekst">Vaši podaci su bezbedno prosleđeni advokatu. Kontaktiraće vas u najkraćem mogućem roku radi zakazivanja konsultacije.</p>
+  </div>
+
+  <div class="unos-red" id="unosRed">
+    <textarea
+      class="unos-polje"
+      id="unosPolje"
+      placeholder="Napišite odgovor..."
+      rows="1"
+      onkeydown="handleEnter(event)"
+      oninput="autoResize(this)"
+    ></textarea>
+    <button class="dugme-posalji" id="dugmePosalji" onclick="posaljiPoruku()">
+      <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+
+  <div class="podnozje">
+    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Svi podaci su poverljivi i enkriptovani
+  </div>
+</div>
+
+<script>
+  // ── Konfiguracija ──
+  const API_URL = "http://localhost:8000";
+  const ADVOKAT_ID = localStorage.getItem('lex_advokat_id') || new URLSearchParams(window.location.search).get("advokat") || 1;
+
+  let istorija = [];
+  let sesija_id = null;
+  let zavrsen = false;
+
+  const elPoruke = document.getElementById("poruke");
+  const elKucanje = document.getElementById("kucanje");
+  const elUnos = document.getElementById("unosPolje");
+  const elDugme = document.getElementById("dugmePosalji");
+  const elZavrseno = document.getElementById("zavrseno");
+  const elUnosRed = document.getElementById("unosRed");
+
+  // ── Pomoćne funkcije ──
+  function dodajPoruku(tekst, uloga) {
+    const div = document.createElement("div");
+    div.className = "poruka " + (uloga === "assistant" ? "asistent" : "klijent");
+    div.textContent = tekst;
+    elPoruke.appendChild(div);
+    elPoruke.scrollTop = elPoruke.scrollHeight;
+  }
+
+  function setUcitavanje(aktivan) {
+    elKucanje.classList.toggle("vidljivo", aktivan);
+    elUnos.disabled = aktivan;
+    elDugme.disabled = aktivan;
+    if (!aktivan) elUnos.focus();
+    elPoruke.scrollTop = elPoruke.scrollHeight;
+  }
+
+  function prikaziZavrseno() {
+    elUnosRed.style.display = "none";
+    elZavrseno.style.display = "flex";
+  }
+
+  function handleEnter(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      posaljiPoruku();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = "40px";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  }
+
+  // ── API pozivi ──
+  async function posaljiPoruku() {
+    if (zavrsen) return;
+    const tekst = elUnos.value.trim();
+
+    if (istorija.length === 0 && tekst === "") {
+      await pokreniRazgovor();
+      return;
+    }
+
+    if (!tekst) return;
+
+    dodajPoruku(tekst, "user");
+    elUnos.value = "";
+    elUnos.style.height = "40px";
+    setUcitavanje(true);
+
+    try {
+      const odgovor = await fetch(`${API_URL}/prijem/poruka`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          advokat_id: parseInt(ADVOKAT_ID),
+          sesija_id: sesija_id,
+          poruka: tekst,
+          istorija: istorija
+        })
+      });
+
+      const podaci = await odgovor.json();
+      istorija = podaci.istorija;
+      sesija_id = podaci.sesija_id;
+
+      setUcitavanje(false);
+      dodajPoruku(podaci.odgovor, "assistant");
+
+      if (podaci.zavrseno) {
+        zavrsen = true;
+        setTimeout(prikaziZavrseno, 2000);
+      }
+
+    } catch (greska) {
+      setUcitavanje(false);
+      dodajPoruku("Došlo je do greške. Molimo pokušajte ponovo.", "assistant");
+    }
+  }
+
+  async function pokreniRazgovor() {
+    setUcitavanje(true);
+    try {
+      const odgovor = await fetch(`${API_URL}/prijem/poruka`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          advokat_id: parseInt(ADVOKAT_ID),
+          poruka: "",
+          istorija: []
+        })
+      });
+
+      const podaci = await odgovor.json();
+      istorija = podaci.istorija;
+      sesija_id = podaci.sesija_id;
+
+      setUcitavanje(false);
+      dodajPoruku(podaci.odgovor, "assistant");
+
+    } catch (greska) {
+      setUcitavanje(false);
+      dodajPoruku("Nije moguće uspostaviti vezu. Molimo pokušajte ponovo.", "assistant");
+    }
+  }
+
+  window.addEventListener("load", () => {
+    pokreniRazgovor();
+  });
+</script>
+</body>
+</html>

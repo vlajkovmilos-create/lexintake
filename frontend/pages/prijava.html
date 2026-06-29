@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prijava — LexIntake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f0e8;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .leva {
+    background: #0f2744;
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .logo-znak {
+    width: 36px;
+    height: 36px;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-znak svg {
+    width: 18px;
+    height: 18px;
+    stroke: #c9a84c;
+    fill: none;
+    stroke-width: 1.5;
+  }
+
+  .logo-tekst {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: #f5f0e8;
+  }
+
+  .leva-sredina {
+    max-width: 380px;
+  }
+
+  .leva-citat {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 400;
+    font-style: italic;
+    color: #f5f0e8;
+    line-height: 1.4;
+    margin-bottom: 20px;
+  }
+
+  .leva-citat::before {
+    content: '"';
+    font-size: 64px;
+    color: rgba(201,168,76,0.3);
+    display: block;
+    line-height: 0.8;
+    margin-bottom: 12px;
+  }
+
+  .leva-autor {
+    font-size: 13px;
+    color: rgba(245,240,232,0.45);
+  }
+
+  .leva-podnozje {
+    font-size: 12px;
+    color: rgba(245,240,232,0.3);
+  }
+
+  .desna {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 40px;
+  }
+
+  .forma-omotac {
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .forma-naslov {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: #0f2744;
+    margin-bottom: 6px;
+  }
+
+  .forma-podnaslov {
+    font-size: 14px;
+    color: #8a8070;
+    margin-bottom: 32px;
+    font-weight: 300;
+  }
+
+  .forma-podnaslov a {
+    color: #0f2744;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .forma-podnaslov a:hover { text-decoration: underline; }
+
+  .polje-grupa { margin-bottom: 16px; }
+
+  .polje-oznaka {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #3d3830;
+    margin-bottom: 6px;
+  }
+
+  .polje-unos {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid rgba(15,39,68,0.15);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: #1a1610;
+    background: #ffffff;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .polje-unos:focus {
+    border-color: #0f2744;
+    box-shadow: 0 0 0 3px rgba(15,39,68,0.06);
+  }
+
+  .polje-unos.greska { border-color: #dc2626; }
+  .polje-unos::placeholder { color: #b8b0a4; }
+
+  .razdvajac {
+    height: 1px;
+    background: rgba(15,39,68,0.08);
+    margin: 20px 0;
+  }
+
+  .globalna-greska {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #991b1b;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .globalna-greska.vidljivo { display: block; }
+
+  .dugme-prijava {
+    width: 100%;
+    padding: 12px;
+    background: #0f2744;
+    color: #f5f0e8;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .dugme-prijava:hover { background: #1a3a5c; }
+  .dugme-prijava:disabled { background: #8a8070; cursor: not-allowed; }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(245,240,232,0.3);
+    border-top-color: #f5f0e8;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 768px) {
+    body { grid-template-columns: 1fr; }
+    .leva { display: none; }
+    .desna { padding: 32px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="leva">
+  <a href="#" class="logo">
+    <div class="logo-znak">
+      <svg viewBox="0 0 24 24"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
+    </div>
+    <span class="logo-tekst">LexIntake</span>
+  </a>
+
+  <div class="leva-sredina">
+    <div class="leva-citat">
+      Ranije sam trošio 20 minuta na uvod. Sada dobijem izveštaj pre nego klijent uđe na vrata.
+    </div>
+    <div class="leva-autor">— Nikola Marković, advokat · Beograd</div>
+  </div>
+
+  <div class="leva-podnozje">© 2026 LexIntake · Napravljeno u Srbiji 🇷🇸</div>
+</div>
+
+<div class="desna">
+  <div class="forma-omotac">
+    <h2 class="forma-naslov">Dobrodošli nazad</h2>
+    <p class="forma-podnaslov">Nemate nalog? <a href="registracija.html">Registrujte se besplatno</a></p>
+
+    <div class="globalna-greska" id="globalnaGreska"></div>
+
+    <div class="polje-grupa">
+      <label class="polje-oznaka">Email adresa</label>
+      <input class="polje-unos" type="email" id="email" placeholder="nikola@kancelarija.rs">
+    </div>
+
+    <div class="polje-grupa">
+      <label class="polje-oznaka">Lozinka</label>
+      <input class="polje-unos" type="password" id="lozinka" placeholder="Vaša lozinka">
+    </div>
+
+    <div class="razdvajac"></div>
+
+    <button class="dugme-prijava" id="dugme" onclick="prijava()">
+      <div class="spinner" id="spinner"></div>
+      <span id="dugmeTekst">Prijavite se</span>
+    </button>
+  </div>
+</div>
+
+<script>
+  const API_URL = "http://localhost:8000";
+
+  if (localStorage.getItem('lex_token')) {
+    window.location.href = 'tabla.html';
+  }
+
+  function setUcitavanje(aktivan) {
+    document.getElementById('dugme').disabled = aktivan;
+    document.getElementById('spinner').style.display = aktivan ? 'block' : 'none';
+    document.getElementById('dugmeTekst').textContent = aktivan ? 'Prijavljivanje...' : 'Prijavite se';
+  }
+
+  async function prijava() {
+    const email = document.getElementById('email').value.trim();
+    const lozinka = document.getElementById('lozinka').value;
+    const g = document.getElementById('globalnaGreska');
+
+    g.classList.remove('vidljivo');
+
+    if (!email || !lozinka) {
+      g.textContent = 'Unesite email i lozinku.';
+      g.classList.add('vidljivo');
+      return;
+    }
+
+    setUcitavanje(true);
+
+    try {
+      const odg = await fetch(`${API_URL}/auth/prijava`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, lozinka })
+      });
+
+      const rezultat = await odg.json();
+
+      if (!odg.ok) {
+        g.textContent = rezultat.detail || 'Pogrešan email ili lozinka.';
+        g.classList.add('vidljivo');
+        setUcitavanje(false);
+        return;
+      }
+
+      localStorage.setItem('lex_token', rezultat.token);
+      localStorage.setItem('lex_ime', rezultat.ime);
+      localStorage.setItem('lex_email', rezultat.email);
+
+      const advId = dohvatiAdvokatId(rezultat.token);
+      console.log('Token:', rezultat.token);
+      console.log('AdvID:', advId);
+      if (advId) localStorage.setItem('lex_advokat_id', advId);
+
+      window.location.href = 'tabla.html';
+
+    } catch (e) {
+      g.textContent = 'Nije moguće povezati se sa serverom.';
+      g.classList.add('vidljivo');
+      setUcitavanje(false);
+    }
+  }
+
+  function dohvatiAdvokatId(token) {
+    try {
+        const deo = token.split('.')[1];
+        const dekodovan = JSON.parse(atob(deo));
+        return dekodovan.sub;
+    } catch (e) {
+        return null;
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') prijava();
+  });
+</script>
+</body>
+</html>
