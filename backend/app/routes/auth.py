@@ -105,3 +105,16 @@ def azuriraj_advokata(advokat_id: int, podaci: AzuriranjeUlaz, db: Session = Dep
         "naziv_kancelarije": advokat.naziv_kancelarije,
         "telefon": advokat.telefon
     }
+
+@ruter.get("/status-pretplate/{advokat_id}")
+def status_pretplate_test(advokat_id: int, db: Session = Depends(get_db)):
+    advokat = db.query(Advokat).filter(Advokat.id == advokat_id).first()
+    if not advokat:
+        raise HTTPException(status_code=404, detail="Advokat nije pronađen")
+    return {
+        "ime": advokat.ime,
+        "email": advokat.email,
+        "plan": advokat.plan,
+        "status_pretplate": advokat.status_pretplate,
+        "lemonsqueezy_id": advokat.lemonsqueezy_id
+    }
