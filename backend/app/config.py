@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     from_email: str = "noreply@tvojdomen.com"
 
     secret_key: str
+    lemonsqueezy_webhook_secret: str = ""
 
     class Config:
         env_file = ".env"

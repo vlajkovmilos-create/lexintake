@@ -15,6 +15,11 @@ class Advokat(Base):
     aktivan = Column(Boolean, default=True)
     datum_registracije = Column(DateTime, default=datetime.utcnow)
 
+    plan = Column(String(20), default="probni")  # probni / starter / pro / kancelarija
+    status_pretplate = Column(String(20), default="probni_period")  # probni_period / aktivna / istekla / otkazana
+    lemonsqueezy_id = Column(String(100))  # ID pretplate u Lemon Squeezy
+    datum_isteka_probe = Column(DateTime)
+
     prijemi = relationship("Prijem", back_populates="advokat")
 
     def __repr__(self):
