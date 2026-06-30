@@ -36,12 +36,17 @@ def registruj_advokata(db: Session, ime: str, email: str, lozinka: str, naziv_ka
     if postoji:
         raise ValueError("Advokat sa ovim emailom već postoji")
 
+    datum_isteka = datetime.utcnow() + timedelta(days=14)
+
     advokat = Advokat(
         ime=ime,
         email=email,
         lozinka_hash=hashuj_lozinku(lozinka),
         naziv_kancelarije=naziv_kancelarije,
-        telefon=telefon
+        telefon=telefon,
+        plan="probni",
+        status_pretplate="probni_period",
+        datum_isteka_probe=datum_isteka
     )
     db.add(advokat)
     db.commit()

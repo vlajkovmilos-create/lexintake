@@ -6,6 +6,27 @@ from .routes import auth, prijem, placanje
 
 Base.metadata.create_all(bind=engine)
 
+from sqlalchemy import text, inspect
+
+def migriraj_bazu():
+    inspector = inspect(engine)
+    kolone = [k["name"] for k in inspector.get_columns("advokati")]
+    
+    nove_kolone = {
+        "plan": "VARCHAR(20) DEFAULT 'probni'",
+        "status_pretplate": "VARCHAR(20) DEFAULT 'probni_period'",
+        "lemonsqueezy_id": "VARCHAR(100)",
+        "datum_isteka_probe": "DATETIME"
+    }
+    
+    with engine.connect() as konekcija:
+        for naziv, tip in nove_kolone.items():
+            if naziv not in kolone:
+                konekcija.execute(text(f"ALTER TABLE advokati ADD COLUMN {naziv} {tip}"))
+                konekcija.commit()
+
+migriraj_bazu()
+
 settings = get_settings()
 
 app = FastAPI(

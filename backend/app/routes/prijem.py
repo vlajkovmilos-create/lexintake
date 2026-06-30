@@ -34,6 +34,13 @@ def posalji_poruku(podaci: PorukaUlaz, db: Session = Depends(get_db)):
     if not advokat:
         raise HTTPException(status_code=404, detail="Advokat nije pronađen")
 
+    dozvoljeni_statusi = ["probni_period", "aktivna"]
+    if advokat.status_pretplate not in dozvoljeni_statusi:
+        raise HTTPException(
+            status_code=403,
+            detail="Ova advokatska kancelarija trenutno ne prima nove prijeme. Molimo pokušajte kasnije ili kontaktirajte kancelariju direktno."
+        )
+
     istorija = podaci.istorija
     if not istorija:
         uvodna = (
