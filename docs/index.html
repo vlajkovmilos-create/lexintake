@@ -2,10 +2,1308 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=pages/prijava.html">
-<title>LexIntake</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LexIntake — AI asistent za advokatske kancelarije</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0f2744;
+  --navy-light: #1a3a5c;
+  --navy-muted: #2e5080;
+  --cream: #f5f0e8;
+  --cream-dark: #ede7d9;
+  --gold: #c9a84c;
+  --gold-light: #e8d4a0;
+  --warm-gray: #8a8070;
+  --text-dark: #1a1610;
+  --text-body: #3d3830;
+  --text-muted: #7a7060;
+  --white: #ffffff;
+  --border: rgba(15,39,68,0.12);
+  --border-strong: rgba(15,39,68,0.25);
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--cream);
+  color: var(--text-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(245,240,232,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 48px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.nav-logo-mark {
+  width: 34px;
+  height: 34px;
+  background: var(--navy);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nav-logo-mark svg { width: 18px; height: 18px; fill: none; stroke: var(--gold); stroke-width: 1.5; }
+.nav-logo-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+}
+
+.nav-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+}
+.nav-links a {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color .15s;
+}
+.nav-links a:hover { color: var(--navy); }
+
+.nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.btn-ghost {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--navy);
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  transition: background .15s;
+}
+.btn-ghost:hover { background: var(--cream-dark); }
+
+.btn-primary {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--cream);
+  background: var(--navy);
+  text-decoration: none;
+  padding: 9px 20px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: background .15s;
+  font-family: 'Inter', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary:hover { background: var(--navy-light); }
+
+.hero {
+  padding: 80px 48px 72px;
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 64px;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 20px;
+  background: rgba(201,168,76,0.12);
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(201,168,76,0.3);
+}
+.hero-eyebrow::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--gold);
+  border-radius: 50%;
+}
+
+h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 48px;
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+h1 em {
+  font-style: italic;
+  color: var(--navy-muted);
+}
+
+.hero-sub {
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--text-body);
+  line-height: 1.7;
+  margin-bottom: 36px;
+  max-width: 480px;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 48px;
+}
+
+.btn-gold {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--navy);
+  background: var(--gold);
+  padding: 12px 28px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s, transform .1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-gold:hover { background: #d4b460; transform: translateY(-1px); }
+
+.btn-outline {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--navy);
+  background: transparent;
+  padding: 11px 24px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-outline:hover { background: var(--cream-dark); }
+
+.hero-stats {
+  display: flex;
+  gap: 32px;
+}
+.hero-stat { }
+.hero-stat-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--navy);
+  display: block;
+}
+.hero-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.hero-stat-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--border-strong);
+  align-self: center;
+}
+
+.demo-card {
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(15,39,68,0.08), 0 1px 4px rgba(15,39,68,0.04);
+}
+
+.demo-card-header {
+  background: var(--navy);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.demo-card-header-avatar {
+  width: 32px; height: 32px;
+  background: rgba(201,168,76,0.2);
+  border: 1px solid rgba(201,168,76,0.4);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.demo-card-header-avatar svg { width: 15px; height: 15px; stroke: var(--gold); fill: none; stroke-width: 1.8; }
+.demo-card-header-info {}
+.demo-card-header-name { font-size: 13px; font-weight: 500; color: var(--white); }
+.demo-card-header-status { font-size: 11px; color: rgba(255,255,255,0.5); display: flex; align-items: center; gap: 4px; }
+.status-dot { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; }
+
+.demo-messages {
+  padding: 16px;
+  min-height: 220px;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fafaf8;
+}
+.demo-messages::-webkit-scrollbar { width: 4px; }
+.demo-messages::-webkit-scrollbar-track { background: transparent; }
+.demo-messages::-webkit-scrollbar-thumb { background: var(--cream-dark); border-radius: 2px; }
+
+.dmsg {
+  max-width: 85%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.dmsg.bot {
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--text-dark);
+  align-self: flex-start;
+  border-bottom-left-radius: 3px;
+}
+.dmsg.user {
+  background: var(--navy);
+  color: rgba(255,255,255,0.92);
+  align-self: flex-end;
+  border-bottom-right-radius: 3px;
+}
+
+.demo-typing {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  border-bottom-left-radius: 3px;
+  width: fit-content;
+}
+.demo-typing.show { display: flex; }
+.demo-typing span { font-size: 12px; color: var(--text-muted); }
+.tdot {
+  width: 5px; height: 5px;
+  background: var(--navy-muted);
+  border-radius: 50%;
+  animation: tdot .9s infinite;
+}
+.tdot:nth-child(2) { animation-delay: .15s; }
+.tdot:nth-child(3) { animation-delay: .3s; }
+@keyframes tdot { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+
+.demo-input-row {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  background: var(--white);
+}
+.demo-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-dark);
+  background: #fafaf8;
+  outline: none;
+  transition: border-color .15s;
+}
+.demo-input:focus { border-color: var(--navy); }
+.demo-send {
+  width: 34px; height: 34px;
+  background: var(--navy);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+.demo-send:hover { background: var(--navy-light); }
+.demo-send svg { width: 15px; height: 15px; fill: none; stroke: white; stroke-width: 2; }
+
+.demo-footer {
+  padding: 10px 14px;
+  background: rgba(245,240,232,0.6);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.demo-footer svg { width: 12px; height: 12px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; }
+
+/* ── TRUST BAR ── */
+.trust-bar {
+  background: var(--navy);
+  padding: 18px 48px;
+}
+.trust-bar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+}
+.trust-item svg { width: 16px; height: 16px; stroke: var(--gold); fill: none; stroke-width: 1.8; flex-shrink: 0; }
+.trust-sep { width: 1px; height: 24px; background: rgba(255,255,255,0.12); }
+
+section { padding: 80px 48px; }
+
+.section-eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin-bottom: 12px;
+  display: block;
+}
+h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 36px;
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+.section-sub {
+  font-size: 16px;
+  color: var(--text-muted);
+  max-width: 520px;
+  line-height: 1.7;
+  font-weight: 300;
+}
+.section-center { text-align: center; }
+.section-center .section-sub { margin: 0 auto 48px; }
+
+/* ── HOW IT WORKS ── */
+.how-section { background: var(--white); }
+.how-inner { max-width: 1200px; margin: 0 auto; }
+.how-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 48px;
+  margin-top: 56px;
+  position: relative;
+}
+.how-steps::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  left: calc(16.66% + 16px);
+  right: calc(16.66% + 16px);
+  height: 1px;
+  background: var(--border-strong);
+}
+.how-step {}
+.how-step-num {
+  width: 48px; height: 48px;
+  background: var(--navy);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--gold);
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+.how-step h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 10px;
+}
+.how-step p { font-size: 14px; color: var(--text-muted); line-height: 1.7; font-weight: 300; }
+
+.features-section { background: var(--cream); }
+.features-inner { max-width: 1200px; margin: 0 auto; }
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 48px;
+}
+.feature-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.feature-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 16px rgba(15,39,68,0.06);
+}
+.feature-icon {
+  width: 40px; height: 40px;
+  background: rgba(15,39,68,0.06);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+}
+.feature-icon svg { width: 20px; height: 20px; stroke: var(--navy); fill: none; stroke-width: 1.6; }
+.feature-card h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+.feature-card p { font-size: 14px; color: var(--text-muted); line-height: 1.7; font-weight: 300; }
+
+.report-section-block { background: var(--navy); }
+.report-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+.report-inner h2 { color: var(--cream); }
+.report-inner .section-eyebrow { color: var(--gold); }
+.report-inner .section-sub { color: rgba(245,240,232,0.6); max-width: 400px; }
+.report-check-list { margin-top: 32px; display: flex; flex-direction: column; gap: 14px; }
+.report-check {
+  display: flex; align-items: flex-start; gap: 12px;
+  font-size: 15px; color: rgba(245,240,232,0.85); font-weight: 300; line-height: 1.5;
+}
+.rcheck-icon {
+  width: 20px; height: 20px; flex-shrink: 0;
+  background: rgba(201,168,76,0.2);
+  border: 1px solid rgba(201,168,76,0.4);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 2px;
+}
+.rcheck-icon svg { width: 10px; height: 10px; stroke: var(--gold); fill: none; stroke-width: 2.5; }
+
+.report-mockup {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+}
+.report-mockup-bar {
+  background: #f0ebe0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rbar-dot { width: 10px; height: 10px; border-radius: 50%; }
+.report-mockup-body { padding: 20px; }
+.report-field-row { margin-bottom: 14px; }
+.rfield-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
+.rfield-val { font-size: 13px; color: var(--text-dark); font-weight: 400; }
+.rfield-divider { height: 1px; background: var(--border); margin: 16px 0; }
+.ai-block {
+  background: #f0f4f8;
+  border-left: 2px solid var(--navy);
+  border-radius: 0 6px 6px 0;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--navy);
+  line-height: 1.6;
+}
+.ai-block-label { font-size: 10px; font-weight: 500; color: var(--warm-gray); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+.urgency-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.urg-label { font-size: 11px; color: var(--text-muted); }
+.urg-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.urg-fill { height: 100%; width: 75%; background: linear-gradient(90deg, #22c55e, #f59e0b, #ef4444); border-radius: 2px; }
+.urg-val { font-size: 11px; font-weight: 500; color: #a32d2d; }
+
+/* ── TESTIMONIALS ── */
+.testimonials-section { background: var(--cream-dark); }
+.testimonials-inner { max-width: 1200px; margin: 0 auto; }
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 48px;
+}
+.testimonial-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+}
+.testimonial-quote {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--navy);
+  line-height: 1.6;
+  font-style: italic;
+  margin-bottom: 24px;
+  position: relative;
+  padding-left: 20px;
+}
+.testimonial-quote::before {
+  content: '"';
+  font-size: 48px;
+  color: var(--gold-light);
+  font-family: 'Playfair Display', serif;
+  position: absolute;
+  left: -4px;
+  top: -12px;
+  line-height: 1;
+}
+.testimonial-author { display: flex; align-items: center; gap: 12px; }
+.testimonial-avatar {
+  width: 40px; height: 40px;
+  background: var(--navy);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  color: var(--gold);
+}
+.testimonial-name { font-size: 14px; font-weight: 500; color: var(--navy); }
+.testimonial-title { font-size: 12px; color: var(--text-muted); }
+
+.pricing-section { background: var(--white); }
+.pricing-inner { max-width: 1000px; margin: 0 auto; }
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 48px;
+}
+.pricing-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  position: relative;
+  transition: border-color .2s;
+}
+.pricing-card:hover { border-color: var(--border-strong); }
+.pricing-card.featured {
+  border: 2px solid var(--navy);
+  background: var(--navy);
+}
+.pricing-badge {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gold);
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.pricing-tier { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); margin-bottom: 8px; }
+.pricing-card.featured .pricing-tier { color: rgba(255,255,255,0.5); }
+.pricing-price {
+  font-family: 'Playfair Display', serif;
+  font-size: 36px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.pricing-card.featured .pricing-price { color: var(--cream); }
+.pricing-price span { font-size: 14px; font-weight: 400; color: var(--text-muted); font-family: 'Inter', sans-serif; }
+.pricing-card.featured .pricing-price span { color: rgba(255,255,255,0.5); }
+.pricing-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; font-weight: 300; }
+.pricing-card.featured .pricing-desc { color: rgba(255,255,255,0.5); }
+.pricing-divider { height: 1px; background: var(--border); margin: 20px 0; }
+.pricing-card.featured .pricing-divider { background: rgba(255,255,255,0.12); }
+.pricing-features { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+.pricing-feature {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--text-body);
+}
+.pricing-card.featured .pricing-feature { color: rgba(255,255,255,0.75); }
+.pf-check {
+  width: 16px; height: 16px;
+  background: rgba(15,39,68,0.08);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.pricing-card.featured .pf-check { background: rgba(201,168,76,0.2); }
+.pf-check svg { width: 9px; height: 9px; stroke: var(--navy); fill: none; stroke-width: 2.5; }
+.pricing-card.featured .pf-check svg { stroke: var(--gold); }
+.pricing-cta {
+  width: 100%;
+  padding: 11px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--navy);
+  transition: background .15s;
+}
+.pricing-cta:hover { background: var(--cream); }
+.pricing-card.featured .pricing-cta {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--navy);
+}
+.pricing-card.featured .pricing-cta:hover { background: #d4b460; }
+
+/* ── FAQ ── */
+.faq-section { background: var(--cream); }
+.faq-inner { max-width: 720px; margin: 0 auto; }
+.faq-list { margin-top: 40px; display: flex; flex-direction: column; gap: 2px; }
+.faq-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--white);
+}
+.faq-question {
+  width: 100%;
+  text-align: left;
+  padding: 18px 20px;
+  background: none;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--navy);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background .15s;
+}
+.faq-question:hover { background: #fafaf6; }
+.faq-arrow { width: 16px; height: 16px; stroke: var(--navy); fill: none; stroke-width: 2; transition: transform .2s; flex-shrink: 0; }
+.faq-item.open .faq-arrow { transform: rotate(180deg); }
+.faq-answer { display: none; padding: 0 20px 18px; font-size: 14px; color: var(--text-muted); line-height: 1.7; font-weight: 300; }
+.faq-item.open .faq-answer { display: block; }
+
+footer {
+  background: var(--navy);
+  padding: 48px;
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+}
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 48px;
+  margin-bottom: 40px;
+}
+.footer-brand {}
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.footer-logo-mark {
+  width: 28px; height: 28px;
+  background: rgba(201,168,76,0.15);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+}
+.footer-logo-mark svg { width: 14px; height: 14px; stroke: var(--gold); fill: none; stroke-width: 1.5; }
+.footer-logo-text { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--cream); }
+.footer-desc { font-size: 13px; color: rgba(255,255,255,0.4); line-height: 1.6; max-width: 280px; }
+.footer-col-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,0.6); margin-bottom: 16px; }
+.footer-links { display: flex; flex-direction: column; gap: 10px; }
+.footer-links a { color: rgba(255,255,255,0.4); text-decoration: none; font-size: 13px; transition: color .15s; }
+.footer-links a:hover { color: rgba(255,255,255,0.8); }
+.footer-bottom {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; gap: 40px; padding: 48px 24px; }
+  .hero-stats { flex-wrap: wrap; }
+  h1 { font-size: 36px; }
+  nav { padding: 0 24px; }
+  .nav-links { display: none; }
+  section { padding: 56px 24px; }
+  .how-steps, .features-grid, .pricing-grid { grid-template-columns: 1fr; }
+  .how-steps::before { display: none; }
+  .report-inner, .testimonials-grid { grid-template-columns: 1fr; }
+  .trust-bar { padding: 18px 24px; }
+  .trust-bar-inner { flex-wrap: wrap; gap: 16px; }
+  .footer-inner { grid-template-columns: 1fr; gap: 32px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
 </head>
 <body>
-<p>Preusmeravanje...</p>
+
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
+    </div>
+    <span class="nav-logo-text">LexIntake</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#kako-radi">Kako radi</a></li>
+    <li><a href="#funkcije">Funkcije</a></li>
+    <li><a href="#cene">Cene</a></li>
+    <li><a href="#faq">Pitanja</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="pages/prijava.html" class="btn-ghost">Prijava</a>
+    <a href="pages/registracija.html" class="btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      Besplatna proba
+    </a>
+  </div>
+</nav>
+
+<section style="padding: 80px 48px 72px; background: var(--cream);">
+  <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 420px; gap: 64px; align-items: center;">
+    <div>
+      <div class="hero-eyebrow">AI za advokatske kancelarije</div>
+      <h1>Vaš klijent dolazi <em>spreman</em>. Svakog puta.</h1>
+      <p class="hero-sub">LexIntake vodi klijenta kroz strukturirani upitnik pre prvog sastanka. Vi dobijate kompletan AI izveštaj — bez jednog pitanja koje ste vi postavili.</p>
+      <div class="hero-actions">
+        <a href="pages/registracija.html" class="btn-gold">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          Počnite besplatno — 14 dana
+        </a>
+        <a href="#kako-radi" class="btn-outline">Pogledajte demo</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="hero-stat-val">4.2<span style="font-size:18px">min</span></span>
+          <span class="hero-stat-label">prosečan upitnik</span>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <span class="hero-stat-val">12h</span>
+          <span class="hero-stat-label">mesečna ušteda</span>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <span class="hero-stat-val">68%</span>
+          <span class="hero-stat-label">konverzija klijenata</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <div class="demo-card-header-avatar">
+          <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5v2a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M3 20a9 9 0 0 1 18 0"/></svg>
+        </div>
+        <div class="demo-card-header-info">
+          <div class="demo-card-header-name">LexIntake asistent</div>
+          <div class="demo-card-header-status"><div class="status-dot"></div>Aktivan · adv. kancelarija</div>
+        </div>
+      </div>
+      <div class="demo-messages" id="demoMsgs">
+        <div class="dmsg bot">Dobrodošli. Ja sam AI asistent ove advokatske kancelarije. Da bih vam pomogao da zakažete konsultaciju, potrebno mi je da mi ukratko opišete vaš pravni problem. Sve što navedete je poverljivo.</div>
+      </div>
+      <div class="demo-typing" id="demoTyping">
+        <div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>
+        <span>Asistent odgovara</span>
+      </div>
+      <div class="demo-input-row">
+        <input class="demo-input" id="demoInput" type="text" placeholder="Opišite vaš problem..." onkeydown="if(event.key==='Enter')demoSend()">
+        <button class="demo-send" onclick="demoSend()" aria-label="Pošalji">
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+      <div class="demo-footer">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Svi podaci su šifrovani i dostupni samo vašem advokatu
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="trust-bar">
+  <div class="trust-bar-inner">
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      End-to-end enkripcija
+    </div>
+    <div class="trust-sep"></div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
+      GDPR usklađeno
+    </div>
+    <div class="trust-sep"></div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Bez instalacije — radi odmah
+    </div>
+    <div class="trust-sep"></div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Dostupno 24/7 za vaše klijente
+    </div>
+    <div class="trust-sep"></div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Serbian & English
+    </div>
+  </div>
+</div>
+
+<section class="how-section" id="kako-radi">
+  <div class="how-inner section-center">
+    <span class="section-eyebrow">Proces</span>
+    <h2>Tri koraka do savršeno pripremljenog klijenta</h2>
+    <p class="section-sub">Od prvog kontakta do vašeg stola — sve automatski, bez vašeg angažmana.</p>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="how-step-num">1</div>
+        <h3>Klijent piše</h3>
+        <p>Klijent otvori link koji vi objavite na svom sajtu, Instagramu ili Facebook grupi. AI vodi razgovor na srpskom — prijatno, profesionalno, bez pravnih žargona.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">2</div>
+        <h3>AI prikuplja podatke</h3>
+        <p>Asistent prolazi kroz 5 strukturiranih faza — kontakt, opis problema, detalji, dokumenti, urgentnost. Prilagođava pitanja na osnovu oblasti prava koja se pojavi.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">3</div>
+        <h3>Vi dobijate izveštaj</h3>
+        <p>Na vaš email stiže kompletan AI izveštaj sa svim podacima, pravnom analizom i preporučenim sledećim koracima. Klijent dolazi — vi ste već spremni.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features-section" id="funkcije">
+  <div class="features-inner">
+    <span class="section-eyebrow">Funkcije</span>
+    <h2>Sve što vam treba, ništa što vam smeta</h2>
+    <p class="section-sub">LexIntake je dizajniran specifično za srpsko tržište advokatskih usluga.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>Prirodan AI razgovor</h3>
+        <p>Klijent ne oseća da popunjava formular. Razgovor teče prirodno, a AI prepoznaje oblast prava i prilagođava pitanja u realnom vremenu.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <h3>PDF izveštaj odmah</h3>
+        <p>Čim klijent završi razgovor, vi dobijate kompletan izveštaj spreman za štampanje ili čuvanje u dosijeu klijenta.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>Rokovi i urgentnost</h3>
+        <p>AI automatski procenjuje urgentnost slučaja i upozorava na relevantne zakonske rokove — zastarelost, tužbeni rokovi, žalbeni periodi.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.55 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <h3>Email i SMS notifikacije</h3>
+        <p>Odmah po završetku upitnika dobijate notifikaciju sa linkom ka izveštaju. Opciono i SMS podsetnik za zakazanu konsultaciju.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </div>
+        <h3>Ugradite na svoj sajt</h3>
+        <p>Jedan jednostavan link i LexIntake radi na vašem sajtu, Facebook stranici ili kao samostalan link koji šaljete direktno klijentima.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
+        </div>
+        <h3>Advokatska poverljivost</h3>
+        <p>Svi podaci su enkriptovani, smešteni na EU serverima, i dostupni isključivo vama. Potpuno u skladu sa Zakonom o advokaturi i GDPR-om.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="report-section-block">
+  <div class="report-inner" style="max-width: 1200px; margin: 0 auto; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;">
+    <div>
+      <span class="section-eyebrow">AI izveštaj</span>
+      <h2>Kompletan brief pre prvog sastanka</h2>
+      <p class="section-sub" style="max-width: 400px;">Više ne gubite 20 minuta na uvodna pitanja. Sve što trebate znate pre nego klijent uđe na vrata.</p>
+      <div class="report-check-list">
+        <div class="report-check">
+          <div class="rcheck-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          Kontakt podaci i dostupnost klijenta
+        </div>
+        <div class="report-check">
+          <div class="rcheck-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          Opis problema klijentovim rečima
+        </div>
+        <div class="report-check">
+          <div class="rcheck-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          AI analiza pravne oblasti i relevantnih propisa
+        </div>
+        <div class="report-check">
+          <div class="rcheck-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          Procena urgentnosti i ključni rokovi
+        </div>
+        <div class="report-check">
+          <div class="rcheck-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          Lista dokumenata koje klijent treba da donese
+        </div>
+      </div>
+    </div>
+    <div class="report-mockup">
+      <div class="report-mockup-bar">
+        <div class="rbar-dot" style="background:#ef4444"></div>
+        <div class="rbar-dot" style="background:#f59e0b"></div>
+        <div class="rbar-dot" style="background:#22c55e"></div>
+        <span style="font-size:12px;color:var(--text-muted);margin-left:8px">Izveštaj o prijemu — Jovana Petrović.pdf</span>
+      </div>
+      <div class="report-mockup-body">
+        <div class="report-field-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><div class="rfield-label">Ime i prezime</div><div class="rfield-val">Jovana Petrović</div></div>
+          <div><div class="rfield-label">Telefon</div><div class="rfield-val">+381 63 412 885</div></div>
+        </div>
+        <div class="report-field-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+          <div><div class="rfield-label">Oblast prava</div><div class="rfield-val" style="font-weight:500;color:var(--navy)">Radno pravo</div></div>
+          <div><div class="rfield-label">Datum prijema</div><div class="rfield-val">28.06.2026. · 09:14</div></div>
+        </div>
+        <div class="rfield-divider"></div>
+        <div><div class="rfield-label">Opis problema</div><div class="rfield-val" style="margin-top:4px;line-height:1.5;font-size:12px">Dobila otkaz posle 6 godina bez pisanog obrazloženja. Nije isplaćena otpremnina ni poslednja zarada. Odbila potpisivanje sporazumnog raskida.</div></div>
+        <div class="rfield-divider"></div>
+        <div class="ai-block">
+          <div class="ai-block-label">AI pravna analiza</div>
+          Potencijalna povreda čl. 179–187 Zakona o radu RS. Preporučiti pribavljanje pisanog rešenja o otkazu. Rok za tužbu: 60 dana od prestanka rada.
+        </div>
+        <div class="urgency-row">
+          <span class="urg-label">Urgentnost:</span>
+          <div class="urg-track"><div class="urg-fill"></div></div>
+          <span class="urg-val">Visoka</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="testimonials-section">
+  <div class="testimonials-inner">
+    <div style="text-align:center">
+      <span class="section-eyebrow">Iskustva</span>
+      <h2>Što kažu advokati koji koriste LexIntake</h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <p class="testimonial-quote">Ranije sam trošio 20 minuta na početku svakog razgovora samo da bih razumeo šta klijent uopšte hoće. Sada dobijem izveštaj pre sastanka i odmah idem na suštinu. Štedi mi minimum sat vremena dnevno.</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">NM</div>
+          <div>
+            <div class="testimonial-name">Nikola Marković</div>
+            <div class="testimonial-title">Advokat · Beograd · Radno i privredno pravo</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <p class="testimonial-quote">Bila sam skeptična prema AI u advokatauri, ali ovo nije AI koji daje pravne savete — samo prikuplja podatke umesto mene. Razlika je ogromna. Klijenti dolaze fokusirani, a ja imam sve informacije.</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">IJ</div>
+          <div>
+            <div class="testimonial-name">Ivana Janković</div>
+            <div class="testimonial-title">Advokatica · Novi Sad · Porodično pravo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing-section" id="cene">
+  <div class="pricing-inner">
+    <div style="text-align:center">
+      <span class="section-eyebrow">Cenovnik</span>
+      <h2>Jasne cene, bez iznenađenja</h2>
+      <p class="section-sub" style="margin: 0 auto 48px;">Svaki plan uključuje 14-dnevnu besplatnu probu. Bez kreditne kartice.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-tier">Starter</div>
+        <div class="pricing-price">24.99<span>€/mes</span></div>
+        <p class="pricing-desc">Za individualne advokate koji tek počinju sa digitalizacijom</p>
+        <div class="pricing-divider"></div>
+        <div class="pricing-features">
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Do 30 prijema mesečno</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>AI izveštaj na srpskom</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Email notifikacije</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Link za deljenje sa klijentima</div>
+        </div>
+        <a href="pages/registracija.html" class="pricing-cta" style="text-decoration:none;text-align:center;display:block">Počnite besplatno</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Najpopularnije</div>
+        <div class="pricing-tier">Pro</div>
+        <div class="pricing-price">49.99<span>€/mes</span></div>
+        <p class="pricing-desc">Za aktivne kancelarije sa više predmeta i advokata</p>
+        <div class="pricing-divider"></div>
+        <div class="pricing-features">
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Neograničen broj prijema</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Do 5 advokata u kancelariji</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>PDF export izveštaja</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Kontrolna tabla za praćenje slučajeva</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>SMS notifikacije</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Prioritetna podrška</div>
+        </div>
+        <a href="pages/registracija.html" class="pricing-cta" style="text-decoration:none;text-align:center;display:block">Počnite besplatno</a>
+      </div>
+
+      <div class="pricing-card">
+        <div class="pricing-tier">Kancelarija</div>
+        <div class="pricing-price">99.99<span>€/mes</span></div>
+        <p class="pricing-desc">Za veće kancelarije kojima treba white-label rešenje</p>
+        <div class="pricing-divider"></div>
+        <div class="pricing-features">
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Sve iz Pro plana</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>White-label brending</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Neograničen broj advokata</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>API integracija</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Onboarding sesija</div>
+        </div>
+        <a href="mailto:kontakt@lexintake.rs" class="pricing-cta" style="text-decoration:none;text-align:center;display:block">Kontaktirajte nas</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="faq-section" id="faq">
+  <div class="faq-inner">
+    <div style="text-align:center; margin-bottom:0">
+      <span class="section-eyebrow">Pitanja i odgovori</span>
+      <h2>Sve što vas zanima</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Da li LexIntake daje pravne savete klijentima?
+          <svg class="faq-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">Ne. LexIntake je alat za prikupljanje informacija, ne za davanje pravnih saveta. Asistent isključivo vodi klijenta kroz strukturirani razgovor i prikuplja podatke — potpuno isto kao sekretarica ili pravni asistent u kancelariji. Sve pravne procene i saveti ostaju u isključivoj nadležnosti advokata.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Kako je zaštićena poverljivost podataka klijenata?
+          <svg class="faq-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">Svi podaci su enkriptovani TLS 1.3 protokolom u prenosu i AES-256 u mirovanju. Serveri se nalaze u EU (Frankfurt), u skladu sa GDPR regulativom. Podaci su dostupni isključivo vama i vašim kolegama unutar kancelarijskog naloga. Nikada ne koristimo podatke vaših klijenata za treniranje AI modela.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Koliko traje podešavanje?
+          <svg class="faq-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">Nalog možete otvoriti i biti operativni za manje od 5 minuta. Dobijate jedinstveni link koji odmah možete da podelite sa klijentima — putem Vibera, WhatsApp-a, na vašem sajtu ili u Facebook grupi. Nema instalacije, nema tehničkog znanja potrebnog.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Na kojim jezicima radi asistent?
+          <svg class="faq-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">Primarno na srpskom jeziku (latinica i ćirilica). Pro i Kancelarija planovi uključuju podršku za engleski jezik, što je korisno za klijente dijaspore ili strane privredne subjekte.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Mogu li otkazati pretplatu u bilo kom trenutku?
+          <svg class="faq-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">Da, bez ikakvih penala. Pretplata se može otkazati u bilo kom trenutku iz podešavanja naloga. Nakon otkazivanja zadržavate pristup do kraja plaćenog perioda. Svi vaši podaci i izveštaji ostaju dostupni za preuzimanje u narednih 30 dana.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-logo">
+        <div class="footer-logo-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
+        </div>
+        <span class="footer-logo-text">LexIntake</span>
+      </div>
+      <p class="footer-desc">AI sistem za automatizovani prijem klijenata u advokatskim kancelarijama. Štedite vreme, povećavate konverziju.</p>
+    </div>
+    <div>
+      <div class="footer-col-title">Proizvod</div>
+      <div class="footer-links">
+        <a href="#kako-radi">Kako radi</a>
+        <a href="#funkcije">Funkcije</a>
+        <a href="#cene">Cene</a>
+        <a href="#">Dokumentacija</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Kompanija</div>
+      <div class="footer-links">
+        <a href="#">O nama</a>
+        <a href="#">Kontakt</a>
+        <a href="#">Politika privatnosti</a>
+        <a href="#">Uslovi korišćenja</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 LexIntake. Sva prava zadržana.</span>
+    <span>Napravljeno u Srbiji 🇷🇸</span>
+  </div>
+</footer>
+
+<script>
+const demoFlow = [
+  {
+    q: "Hvala što ste se obratili. Kako se zovete i koji je vaš broj telefona ili email adresa?",
+    delay: 1200
+  },
+  {
+    q: "Hvala, Jovana. Ukratko mi opišite u čemu se sastoji vaš pravni problem — ne morate biti precizni, samo generalno.",
+    delay: 1400
+  },
+  {
+    q: "Razumem. Kada se to desilo i da li imate ikakve dokumente u vezi sa tim — ugovor, rešenje, prepisku?",
+    delay: 1300
+  },
+  {
+    q: "Važna informacija, hvala. Poslednje pitanje — da li ste već preduzeli neke korake, potpisali nešto ili kontaktirali poslodavca u pisanoj formi?",
+    delay: 1500
+  },
+  {
+    q: "Odlično. Na osnovu svega što ste naveli, sačinju AI izveštaj za advokata koji će biti spreman pre vašeg sastanka. Kancelarija će vas kontaktirati radi zakazivanja. Hvala na poverenju.",
+    delay: 1600,
+    final: true
+  }
+];
+
+let demoStep = 0;
+const demoMsgs = document.getElementById('demoMsgs');
+const demoTyping = document.getElementById('demoTyping');
+const demoInput = document.getElementById('demoInput');
+
+function demoAddMsg(text, role) {
+  const d = document.createElement('div');
+  d.className = 'dmsg ' + role;
+  d.textContent = text;
+  demoMsgs.appendChild(d);
+  demoMsgs.scrollTop = demoMsgs.scrollHeight;
+}
+
+function demoSend() {
+  const val = demoInput.value.trim();
+  if (!val || demoStep >= demoFlow.length) return;
+  demoAddMsg(val, 'user');
+  demoInput.value = '';
+  demoInput.disabled = true;
+
+  const s = demoFlow[demoStep];
+  demoTyping.classList.add('show');
+  demoMsgs.scrollTop = demoMsgs.scrollHeight;
+
+  setTimeout(() => {
+    demoTyping.classList.remove('show');
+    demoAddMsg(s.q, 'bot');
+    demoStep++;
+    if (!s.final) {
+      demoInput.disabled = false;
+      demoInput.focus();
+    } else {
+      demoInput.placeholder = 'Razgovor završen — izveštaj se generiše...';
+    }
+  }, s.delay);
+}
+
+function toggleFaq(btn) {
+  const item = btn.parentElement;
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+
+const nav = document.querySelector('nav');
+window.addEventListener('scroll', () => {
+  nav.style.borderBottomColor = window.scrollY > 10
+    ? 'rgba(15,39,68,0.2)'
+    : 'rgba(15,39,68,0.1)';
+});
+</script>
 </body>
 </html>
