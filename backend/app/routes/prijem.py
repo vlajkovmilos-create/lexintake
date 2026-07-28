@@ -185,6 +185,16 @@ def _sacuvaj_prijem(db: Session, advokat_id: int, istorija_json: str) -> int:
         print(f"Email nije poslat: {e}")
     return prijem.id
 
+import re
+import unicodedata
+
+def _ocisti_ime_fajla(tekst: str) -> str:
+    tekst = unicodedata.normalize('NFKD', tekst)
+    tekst = tekst.encode('ascii', 'ignore').decode('ascii')
+    tekst = re.sub(r'[^\w\s-]', '', tekst)
+    return tekst.replace(' ', '_')
+
+
 @ruter.get("/pdf/{prijem_id}")
 def preuzmi_pdf(prijem_id: int, db: Session = Depends(get_db)):
     prijem = db.query(Prijem).filter(Prijem.id == prijem_id).first()
@@ -194,15 +204,6 @@ def preuzmi_pdf(prijem_id: int, db: Session = Depends(get_db)):
     advokat = db.query(Advokat).filter(Advokat.id == prijem.advokat_id).first()
 
     pdf = generisi_pdf(prijem, advokat)
-
-    import re
-    import unicodedata
-
-    def _ocisti_ime_fajla(tekst: str) -> str:
-        tekst = unicodedata.normalize('NFKD', tekst)
-        tekst = tekst.encode('ascii', 'ignore').decode('ascii')
-        tekst = re.sub(r'[^\w\s-]', '', tekst)
-    return tekst.replace(' ', '_')
 
     ime_fajla = f"prijem_{prijem_id}_{_ocisti_ime_fajla(prijem.klijent_ime or 'klijent')}.pdf"
 
