@@ -195,7 +195,16 @@ def preuzmi_pdf(prijem_id: int, db: Session = Depends(get_db)):
 
     pdf = generisi_pdf(prijem, advokat)
 
-    ime_fajla = f"prijem_{prijem_id}_{prijem.klijent_ime or 'klijent'}.pdf".replace(" ", "_")
+    import re
+    import unicodedata
+
+    def _ocisti_ime_fajla(tekst: str) -> str:
+        tekst = unicodedata.normalize('NFKD', tekst)
+        tekst = tekst.encode('ascii', 'ignore').decode('ascii')
+        tekst = re.sub(r'[^\w\s-]', '', tekst)
+    return tekst.replace(' ', '_')
+
+    ime_fajla = f"prijem_{prijem_id}_{_ocisti_ime_fajla(prijem.klijent_ime or 'klijent')}.pdf"
 
     return Response(
         content=pdf,
