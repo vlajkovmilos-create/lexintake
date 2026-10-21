@@ -858,26 +858,21 @@
     }
   }
 
-  // PDF se preuzima preko fetch-a jer ruta zahteva token
+  // PDF ide preko kratkotrajnog linka (važi 2 min): mobilni browseri ne preuzimaju fajlove dobijene fetch-om
   async function preuzmiPdf() {
     if (!trenutniPrijemId) return;
     const dugme = document.getElementById('dugmePdf');
     dugme.disabled = true;
     dugme.textContent = 'Priprema PDF-a...';
     try {
-      const odg = await apiAdvokat(`/prijem/pdf/${trenutniPrijemId}`);
+      const odg = await apiAdvokat(`/prijem/pdf-link/${trenutniPrijemId}`, { method: 'POST' });
       if (!odg.ok) throw new Error();
-      const blob = await odg.blob();
-      const ime = (odg.headers.get('Content-Disposition') || '').match(/filename="?([^"]+)"?/);
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = ime ? ime[1] : `prijem_${trenutniPrijemId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      const { putanja } = await odg.json();
+      const mobilni = matchMedia('(pointer: coarse)').matches || /iPhone|iPad|Android/i.test(navigator.userAgent);
+      // Telefon: PDF se otvara u pregledaču (odatle Sačuvaj/Podeli); računar: preuzima se kao fajl
+      window.location.href = `${API_URL}${putanja}${mobilni ? '&prikaz=true' : ''}`;
     } catch (e) {
-      alert('Greška pri preuzimanju PDF-a.');
+      alert('Greška pri pripremi PDF-a.');
     } finally {
       dugme.disabled = false;
       dugme.textContent = 'Preuzmi PDF izveštaj';

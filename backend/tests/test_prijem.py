@@ -163,3 +163,24 @@ def test_stari_nedovrseni_razgovori_se_brisu(klijent):
     db.close()
     zapocni(klijent, profil["javni_kod"])
     assert klijent.get(f"/prijem/razgovor/{stara}").status_code == 404
+
+
+def test_pdf_preko_kratkog_linka(klijent, lazni_ai):
+    zaglavlje_a, profil_a = registruj(klijent, email="a@example.com")
+    zaglavlje_b, _ = registruj(klijent, email="b@example.com")
+    lazni_ai["odgovori"].append("RAZGOVOR_ZAVRŠEN: Hvala.")
+    sesija = zapocni(klijent, profil_a["javni_kod"])
+    prijem_id = klijent.post("/prijem/poruka", json={"sesija_id": sesija, "poruka": "Zdravo"}).json()["prijem_id"]
+
+    assert klijent.post(f"/prijem/pdf-link/{prijem_id}", headers=zaglavlje_b).status_code == 404
+    putanja = klijent.post(f"/prijem/pdf-link/{prijem_id}", headers=zaglavlje_a).json()["putanja"]
+
+    odg = klijent.get(putanja + "&prikaz=true")
+    assert odg.status_code == 200 and odg.content.startswith(b"%PDF")
+    assert odg.headers["content-disposition"].startswith("inline")
+    assert klijent.get(putanja).headers["content-disposition"].startswith("attachment")
+
+    # Token iz linka ne važi za drugi prijem niti kao token za prijavu
+    token = putanja.split("t=")[1]
+    assert klijent.get(f"/prijem/pdf-preuzimanje/{prijem_id + 1}?t={token}").status_code == 403
+    assert klijent.get("/prijem/lista", headers={"Authorization": f"Bearer {token}"}).status_code == 401

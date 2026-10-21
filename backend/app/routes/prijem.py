@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..database import get_db
 from ..models import Prijem, Advokat, Razgovor
-from ..services.auth import trenutni_advokat, vlasnik_kancelarije
+from ..services.auth import trenutni_advokat, vlasnik_kancelarije, kreiraj_kratki_token, dekoduj_token
 from ..services.kancelarija import brending
 from ..services.pdf import generisi_pdf
 from ..services.placanje import moze_da_prima_prijeme
@@ -24,6 +24,7 @@ ruter = APIRouter(prefix="/prijem", tags=["Prijem klijenta"])
 
 PORUKA_NE_PRIMA = "Ova advokatska kancelarija trenutno ne prima nove prijeme. Molimo pokušajte kasnije ili kontaktirajte kancelariju direktno."
 DOZVOLJENI_STATUSI = ["novi", "na_pregledu", "zakazano", "zatvoreno"]
+PDF_LINK_SEKUNDI = 120
 
 
 class PocetakUlaz(BaseModel):
@@ -258,17 +259,40 @@ def _ocisti_ime_fajla(tekst: str) -> str:
     return tekst.replace(' ', '_')
 
 
-@ruter.get("/pdf/{prijem_id}")
-def preuzmi_pdf(prijem_id: int, advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
-    prijem = _prijem_advokata(db, prijem_id, advokat)
+def _pdf_odgovor(db: Session, prijem: Prijem, advokat: Advokat, prikaz: bool = False) -> Response:
     vlasnik = vlasnik_kancelarije(db, advokat)
-
     pdf = generisi_pdf(prijem, vlasnik, brending(db, vlasnik))
-
-    ime_fajla = f"prijem_{prijem_id}_{_ocisti_ime_fajla(prijem.klijent_ime or 'klijent')}.pdf"
-
+    ime_fajla = f"prijem_{prijem.id}_{_ocisti_ime_fajla(prijem.klijent_ime or 'klijent')}.pdf"
+    nacin = "inline" if prikaz else "attachment"
     return Response(
         content=pdf,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{ime_fajla}"'}
+        headers={
+            "Content-Disposition": f'{nacin}; filename="{ime_fajla}"',
+            "Cache-Control": "no-store",
+        }
     )
+
+
+@ruter.get("/pdf/{prijem_id}")
+def preuzmi_pdf(prijem_id: int, advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
+    return _pdf_odgovor(db, _prijem_advokata(db, prijem_id, advokat), advokat)
+
+
+@ruter.post("/pdf-link/{prijem_id}")
+def pdf_link(prijem_id: int, advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
+    """Kratkotrajni link za PDF: mobilni browseri ne preuzimaju fajlove dobijene fetch-om."""
+    prijem = _prijem_advokata(db, prijem_id, advokat)
+    token = kreiraj_kratki_token({"sub": str(advokat.id), "svrha": "pdf", "prijem": prijem.id}, sekundi=PDF_LINK_SEKUNDI)
+    return {"putanja": f"/prijem/pdf-preuzimanje/{prijem.id}?t={token}", "vazi_sekundi": PDF_LINK_SEKUNDI}
+
+
+@ruter.get("/pdf-preuzimanje/{prijem_id}")
+def pdf_preko_linka(prijem_id: int, t: str, prikaz: bool = False, db: Session = Depends(get_db)):
+    podaci = dekoduj_token(t)
+    if not podaci or podaci.get("svrha") != "pdf" or podaci.get("prijem") != prijem_id:
+        raise HTTPException(status_code=403, detail="Link za PDF je istekao. Vratite se na kontrolnu tablu i pokušajte ponovo.")
+    advokat = db.query(Advokat).filter(Advokat.id == int(podaci["sub"])).first()
+    if not advokat:
+        raise HTTPException(status_code=403, detail="Link za PDF nije ispravan.")
+    return _pdf_odgovor(db, _prijem_advokata(db, prijem_id, advokat), advokat, prikaz=prikaz)

@@ -36,6 +36,12 @@ def kreiraj_token(podaci: dict) -> str:
     kopija.update({"exp": istice})
     return jwt.encode(kopija, settings.secret_key, algorithm=ALGORITAM)
 
+def kreiraj_kratki_token(podaci: dict, sekundi: int) -> str:
+    """Token za jednu namenu (npr. link za PDF); ne važi kao token za prijavu jer ima 'svrha'."""
+    kopija = podaci.copy()
+    kopija.update({"exp": datetime.utcnow() + timedelta(seconds=sekundi)})
+    return jwt.encode(kopija, settings.secret_key, algorithm=ALGORITAM)
+
 def dekoduj_token(token: str) -> Optional[dict]:
     try:
         return jwt.decode(token, settings.secret_key, algorithms=[ALGORITAM])
@@ -57,7 +63,7 @@ def trenutni_advokat(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Niste prijavljeni")
 
     podaci = dekoduj_token(kredencijali.credentials)
-    if not podaci or not str(podaci.get("sub", "")).isdigit():
+    if not podaci or "svrha" in podaci or not str(podaci.get("sub", "")).isdigit():
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Neispravan ili istekao token")
 
     advokat = db.query(Advokat).filter(Advokat.id == int(podaci["sub"])).first()
