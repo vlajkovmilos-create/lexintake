@@ -219,7 +219,7 @@
 <body>
 
 <div class="leva">
-  <a href="#" class="logo">
+  <a href="../index.html" class="logo">
     <div class="logo-znak">
       <svg viewBox="0 0 24 24"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
     </div>
@@ -262,11 +262,11 @@
   </div>
 </div>
 
+<script src="../js/zajednicko.js"></script>
 <script>
-  const API_URL = "https://lexintake-backend.onrender.com";
 
   if (localStorage.getItem('lex_token')) {
-    window.location.href = 'tabla.html';
+    window.location.href = stranicaPosle();
   }
 
   function setUcitavanje(aktivan) {
@@ -300,22 +300,14 @@
       const rezultat = await odg.json();
 
       if (!odg.ok) {
-        g.textContent = rezultat.detail || 'Pogrešan email ili lozinka.';
+        g.textContent = porukaGreske(rezultat, 'Pogrešan email ili lozinka.');
         g.classList.add('vidljivo');
         setUcitavanje(false);
         return;
       }
 
-      localStorage.setItem('lex_token', rezultat.token);
-      localStorage.setItem('lex_ime', rezultat.ime);
-      localStorage.setItem('lex_email', rezultat.email);
-
-      const advId = dohvatiAdvokatId(rezultat.token);
-      console.log('Token:', rezultat.token);
-      console.log('AdvID:', advId);
-      if (advId) localStorage.setItem('lex_advokat_id', advId);
-
-      window.location.href = 'tabla.html';
+      sacuvajSesiju(rezultat);
+      window.location.href = stranicaPosle();
 
     } catch (e) {
       g.textContent = 'Nije moguće povezati se sa serverom.';
@@ -324,15 +316,6 @@
     }
   }
 
-  function dohvatiAdvokatId(token) {
-    try {
-        const deo = token.split('.')[1];
-        const dekodovan = JSON.parse(atob(deo));
-        return dekodovan.sub;
-    } catch (e) {
-        return null;
-    }
-  }
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter') prijava();

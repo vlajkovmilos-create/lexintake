@@ -20,7 +20,7 @@
     padding: 24px;
   }
 
-  .kartица {
+  .kartica {
     background: #ffffff;
     border: 1px solid rgba(15,39,68,0.12);
     border-radius: 16px;
@@ -259,11 +259,64 @@
     font-weight: 300;
     max-width: 340px;
   }
+  /* Ekran saglasnosti i greške */
+  .uvod-ekran {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    padding: 32px 28px;
+    background: #fafaf8;
+  }
+  .uvod-ekran.vidljivo { display: flex; }
+  .uvod-naslov {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: #0f2744;
+  }
+  .uvod-tekst {
+    font-size: 14px;
+    color: #3d3830;
+    line-height: 1.65;
+  }
+  .uvod-tekst a, .saglasnost a { color: #0f2744; }
+  .saglasnost {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 13px;
+    color: #3d3830;
+    line-height: 1.55;
+    cursor: pointer;
+  }
+  .saglasnost input { margin-top: 3px; width: 16px; height: 16px; flex-shrink: 0; accent-color: #0f2744; }
+  .dugme-pocni {
+    background: #0f2744;
+    color: #f5f0e8;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 18px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    align-self: flex-start;
+  }
+  .dugme-pocni:disabled { background: #8a8070; cursor: not-allowed; }
+  .greska-tekst { font-size: 13px; color: #b91c1c; display: none; }
+  .greska-tekst.vidljivo { display: block; }
+  .poruka.greska { border-color: rgba(185,28,28,0.3); color: #b91c1c; }
+  .poruka ul { margin: 6px 0 0 18px; }
+  .skriveno { display: none !important; }
+
+  @media (max-width: 480px) {
+    body { padding: 0; justify-content: flex-start; }
+    .kartica { border-radius: 0; border: none; min-height: 100vh; display: flex; flex-direction: column; }
+    .poruke, .uvod-ekran, .zavrseno-ekran { flex: 1; max-height: none; }
+  }
 </style>
 </head>
 <body>
 
-<div class="kartица">
+<div class="kartica">
   <div class="zaglavlje">
     <div class="zaglavlje-avatar">
       <svg viewBox="0 0 24 24"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
@@ -277,13 +330,28 @@
     </div>
   </div>
 
-  <div class="poruke" id="poruke"></div>
+  <div class="uvod-ekran" id="uvodEkran">
+    <div class="uvod-naslov">Prijem novog slučaja</div>
+    <p class="uvod-tekst">
+      AI asistent će vam postaviti nekoliko pitanja o vašem slučaju (oko 5 minuta). Vaši odgovori se prosleđuju
+      advokatu pre prve konsultacije. Asistent ne daje pravne savete.
+    </p>
+    <label class="saglasnost">
+      <input type="checkbox" id="saglasnost" onchange="document.getElementById('dugmePocni').disabled = !this.checked">
+      <span>Saglasan/saglasna sam da se podaci koje unesem obrađuju radi pripreme konsultacije, uključujući obradu
+        putem AI servisa, u skladu sa <a href="politika-privatnosti.html" target="_blank">Politikom privatnosti</a>.</span>
+    </label>
+    <button class="dugme-pocni" id="dugmePocni" onclick="pokreniRazgovor()" disabled>Započni razgovor</button>
+    <p class="greska-tekst" id="uvodGreska"></p>
+  </div>
+
+  <div class="poruke skriveno" id="poruke"></div>
 
   <div class="kucanje" id="kucanje">
     <div class="tacka"></div>
     <div class="tacka"></div>
     <div class="tacka"></div>
-    <span>Asistent odgovara</span>
+    <span id="kucanjeTekst">Asistent odgovara</span>
   </div>
 
   <div class="zavrseno-ekran" id="zavrseno">
@@ -291,35 +359,36 @@
       <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
     <div class="zavrseno-naslov">Hvala na poverenju</div>
-    <p class="zavrseno-tekst">Vaši podaci su bezbedno prosleđeni advokatu. Kontaktiraće vas u najkraćem mogućem roku radi zakazivanja konsultacije.</p>
+    <p class="zavrseno-tekst">Vaši podaci su prosleđeni advokatu. Kontaktiraće vas u najkraćem mogućem roku radi zakazivanja konsultacije.</p>
   </div>
 
-  <div class="unos-red" id="unosRed">
+  <div class="unos-red skriveno" id="unosRed">
     <textarea
       class="unos-polje"
       id="unosPolje"
       placeholder="Napišite odgovor..."
       rows="1"
+      maxlength="2000"
       onkeydown="handleEnter(event)"
       oninput="autoResize(this)"
     ></textarea>
-    <button class="dugme-posalji" id="dugmePosalji" onclick="posaljiPoruku()">
+    <button class="dugme-posalji" id="dugmePosalji" onclick="posaljiPoruku()" aria-label="Pošalji">
       <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </button>
   </div>
 
   <div class="podnozje">
     <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    Svi podaci su poverljivi i enkriptovani
+    Podaci su poverljivi i prenose se šifrovanom vezom · <a href="politika-privatnosti.html" target="_blank" style="color:inherit">Privatnost</a>
   </div>
 </div>
 
+<script src="../js/zajednicko.js"></script>
 <script>
-  const API_URL = "https://lexintake-backend.onrender.com";
-  const ADVOKAT_ID = localStorage.getItem('lex_advokat_id') || new URLSearchParams(window.location.search).get("advokat") || 1;
+  const KOD = new URLSearchParams(window.location.search).get("k");
+  const KLJUC_SESIJE = `lex_sesija_${KOD}`;
 
-  let istorija = [];
-  let sesija_id = null;
+  let sesijaId = null;
   let zavrsen = false;
 
   const elPoruke = document.getElementById("poruke");
@@ -328,17 +397,42 @@
   const elDugme = document.getElementById("dugmePosalji");
   const elZavrseno = document.getElementById("zavrseno");
   const elUnosRed = document.getElementById("unosRed");
+  const elUvod = document.getElementById("uvodEkran");
+  const elUvodGreska = document.getElementById("uvodGreska");
 
   // ── Pomoćne funkcije ──
-  function dodajPoruku(tekst, uloga) {
+
+  // Osnovni Markdown (podebljano i liste), posle escape-ovanja - bez ubacivanja HTML-a
+  function formatirajTekst(tekst) {
+    const redovi = esc(tekst).split("\n");
+    let html = "", uListi = false;
+    for (const red of redovi) {
+      const stavka = red.match(/^\s*(?:[-•*]|\d+[.)])\s+(.*)$/);
+      if (stavka) {
+        if (!uListi) { html += "<ul>"; uListi = true; }
+        html += `<li>${stavka[1]}</li>`;
+        continue;
+      }
+      if (uListi) { html += "</ul>"; uListi = false; }
+      html += red + "<br>";
+    }
+    if (uListi) html += "</ul>";
+    return html
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/^(<br>)+|(<br>)+$/g, "");
+  }
+
+  function dodajPoruku(tekst, uloga, greska = false) {
     const div = document.createElement("div");
-    div.className = "poruka " + (uloga === "assistant" ? "asistent" : "klijent");
-    div.textContent = tekst;
+    div.className = "poruka " + (uloga === "assistant" ? "asistent" : "klijent") + (greska ? " greska" : "");
+    if (uloga === "assistant") div.innerHTML = formatirajTekst(tekst);
+    else div.textContent = tekst;
     elPoruke.appendChild(div);
     elPoruke.scrollTop = elPoruke.scrollHeight;
   }
 
-  function setUcitavanje(aktivan) {
+  function setUcitavanje(aktivan, tekst = "Asistent odgovara") {
+    document.getElementById("kucanjeTekst").textContent = tekst;
     elKucanje.classList.toggle("vidljivo", aktivan);
     elUnos.disabled = aktivan;
     elDugme.disabled = aktivan;
@@ -346,9 +440,27 @@
     elPoruke.scrollTop = elPoruke.scrollHeight;
   }
 
+  function prikaziChat() {
+    elUvod.classList.remove("vidljivo");
+    elPoruke.classList.remove("skriveno");
+    elUnosRed.classList.remove("skriveno");
+  }
+
   function prikaziZavrseno() {
-    elUnosRed.style.display = "none";
+    elUnosRed.classList.add("skriveno");
     elZavrseno.style.display = "flex";
+  }
+
+  function prikaziUvodGresku(poruka) {
+    elUvodGreska.textContent = poruka;
+    elUvodGreska.classList.add("vidljivo");
+  }
+
+  function postaviNaziv(naziv) {
+    if (naziv) {
+      document.getElementById("nazivKancelarije").textContent = naziv;
+      document.title = `Prijem klijenta — ${naziv}`;
+    }
   }
 
   function handleEnter(e) {
@@ -363,16 +475,91 @@
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   }
 
-  // ── API pozivi ──
-  async function posaljiPoruku() {
-    if (zavrsen) return;
-    const tekst = elUnos.value.trim();
+  function citajSesiju() {
+    try { return sessionStorage.getItem(KLJUC_SESIJE); } catch (e) { return null; }
+  }
 
-    if (istorija.length === 0 && tekst === "") {
-      await pokreniRazgovor();
+  function pamtiSesiju(id) {
+    try { sessionStorage.setItem(KLJUC_SESIJE, id); } catch (e) {}
+  }
+
+  // ── API pozivi ──
+  async function ucitaj() {
+    if (!KOD) {
+      elUvod.classList.add("vidljivo");
+      document.getElementById("dugmePocni").classList.add("skriveno");
+      prikaziUvodGresku("Link upitnika nije ispravan. Zatražite ispravan link od advokatske kancelarije.");
       return;
     }
 
+    // Nastavak započetog razgovora (npr. posle osvežavanja stranice)
+    const sacuvana = citajSesiju();
+    if (sacuvana) {
+      try {
+        const odg = await fetch(`${API_URL}/prijem/razgovor/${encodeURIComponent(sacuvana)}`);
+        if (odg.ok) {
+          const podaci = await odg.json();
+          sesijaId = podaci.sesija_id;
+          postaviNaziv(podaci.naziv_kancelarije);
+          prikaziChat();
+          podaci.poruke.forEach(p => dodajPoruku(p.content, p.role));
+          if (podaci.zavrseno) { zavrsen = true; prikaziZavrseno(); }
+          return;
+        }
+      } catch (e) {}
+    }
+
+    elUvod.classList.add("vidljivo");
+    try {
+      const odg = await fetch(`${API_URL}/prijem/kancelarija/${encodeURIComponent(KOD)}`);
+      const podaci = await odg.json();
+      if (!odg.ok) {
+        document.getElementById("dugmePocni").classList.add("skriveno");
+        prikaziUvodGresku(porukaGreske(podaci, "Link upitnika nije ispravan."));
+        return;
+      }
+      postaviNaziv(podaci.naziv_kancelarije);
+      if (!podaci.prima_prijeme) {
+        document.getElementById("dugmePocni").classList.add("skriveno");
+        prikaziUvodGresku("Ova kancelarija trenutno ne prima nove prijeme preko upitnika. Molimo kontaktirajte je direktno.");
+      }
+    } catch (e) {
+      prikaziUvodGresku("Server trenutno nije dostupan. Pokušajte ponovo za minut.");
+    }
+  }
+
+  async function pokreniRazgovor() {
+    const dugme = document.getElementById("dugmePocni");
+    dugme.disabled = true;
+    elUvodGreska.classList.remove("vidljivo");
+
+    try {
+      const odg = await fetch(`${API_URL}/prijem/razgovor`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kod: KOD, saglasnost: document.getElementById("saglasnost").checked })
+      });
+      const podaci = await odg.json();
+      if (!odg.ok) {
+        prikaziUvodGresku(porukaGreske(podaci, "Razgovor nije moguće započeti."));
+        dugme.disabled = false;
+        return;
+      }
+      sesijaId = podaci.sesija_id;
+      pamtiSesiju(sesijaId);
+      postaviNaziv(podaci.naziv_kancelarije);
+      prikaziChat();
+      dodajPoruku(podaci.odgovor, "assistant");
+      elUnos.focus();
+    } catch (e) {
+      prikaziUvodGresku("Nije moguće uspostaviti vezu. Proverite internet i pokušajte ponovo.");
+      dugme.disabled = false;
+    }
+  }
+
+  async function posaljiPoruku() {
+    if (zavrsen || !sesijaId || elDugme.disabled) return;
+    const tekst = elUnos.value.trim();
     if (!tekst) return;
 
     dodajPoruku(tekst, "user");
@@ -384,61 +571,33 @@
       const odgovor = await fetch(`${API_URL}/prijem/poruka`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          advokat_id: parseInt(ADVOKAT_ID),
-          sesija_id: sesija_id,
-          poruka: tekst,
-          istorija: istorija
-        })
+        body: JSON.stringify({ sesija_id: sesijaId, poruka: tekst })
       });
-
       const podaci = await odgovor.json();
-      istorija = podaci.istorija;
-      sesija_id = podaci.sesija_id;
 
       setUcitavanje(false);
-      dodajPoruku(podaci.odgovor, "assistant");
-
-      if (podaci.zavrseno) {
-        zavrsen = true;
-        setTimeout(prikaziZavrseno, 2000);
+      if (!odgovor.ok) {
+        dodajPoruku(porukaGreske(podaci, "Došlo je do greške. Molimo pokušajte ponovo."), "assistant", true);
+        // Poruka nije sačuvana - vraćamo je u polje da klijent ne mora ponovo da kuca
+        if (odgovor.status !== 403 && odgovor.status !== 409) elUnos.value = tekst;
+        return;
       }
 
-    } catch (greska) {
-      setUcitavanje(false);
-      dodajPoruku("Došlo je do greške. Molimo pokušajte ponovo.", "assistant");
-    }
-  }
-
-  async function pokreniRazgovor() {
-    setUcitavanje(true);
-    try {
-      const odgovor = await fetch(`${API_URL}/prijem/poruka`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          advokat_id: parseInt(ADVOKAT_ID),
-          poruka: "",
-          istorija: []
-        })
-      });
-
-      const podaci = await odgovor.json();
-      istorija = podaci.istorija;
-      sesija_id = podaci.sesija_id;
-
-      setUcitavanje(false);
       dodajPoruku(podaci.odgovor, "assistant");
-
+      if (podaci.zavrseno) {
+        zavrsen = true;
+        elUnos.disabled = true;
+        elDugme.disabled = true;
+        setTimeout(prikaziZavrseno, 2500);
+      }
     } catch (greska) {
       setUcitavanje(false);
-      dodajPoruku("Nije moguće uspostaviti vezu. Molimo pokušajte ponovo.", "assistant");
+      elUnos.value = tekst;
+      dodajPoruku("Veza sa serverom je prekinuta. Vaša poruka je vraćena u polje - pokušajte ponovo.", "assistant", true);
     }
   }
 
-  window.addEventListener("load", () => {
-    pokreniRazgovor();
-  });
+  ucitaj();
 </script>
 </body>
 </html>

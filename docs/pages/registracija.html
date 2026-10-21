@@ -289,7 +289,7 @@
 <body>
 
 <div class="leva">
-  <a href="#" class="logo">
+  <a href="../index.html" class="logo">
     <div class="logo-znak">
       <svg viewBox="0 0 24 24"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
     </div>
@@ -311,7 +311,7 @@
       </div>
       <div class="benefit">
         <div class="benefit-ikona"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-        GDPR usklađeno, podaci enkriptovani
+        Podaci se prenose šifrovanom vezom
       </div>
       <div class="benefit">
         <div class="benefit-ikona"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -369,14 +369,14 @@
 
     <p class="uslovi">
       Kreiranjem naloga prihvatate naše
-      <a href="#">Uslove korišćenja</a> i
-      <a href="#">Politiku privatnosti</a>
+      uslove korišćenja i
+      <a href="politika-privatnosti.html" target="_blank">Politiku privatnosti</a>
     </p>
   </div>
 </div>
 
+<script src="../js/zajednicko.js"></script>
 <script>
-  const API_URL = "https://lexintake-backend.onrender.com";
 
   function prikaziGresku(id, poruka) {
     const el = document.getElementById('greska-' + id);
@@ -447,20 +447,14 @@
 
       if (!odg.ok) {
         const g = document.getElementById('globalnaGreska');
-        g.textContent = rezultat.detail || 'Greška pri registraciji. Pokušajte ponovo.';
+        g.textContent = porukaGreske(rezultat, 'Greška pri registraciji. Pokušajte ponovo.');
         g.classList.add('vidljivo');
         setUcitavanje(false);
         return;
       }
 
-      localStorage.setItem('lex_token', rezultat.token);
-      localStorage.setItem('lex_ime', rezultat.ime);
-      localStorage.setItem('lex_email', rezultat.email);
-
-      const advId = dohvatiAdvokatId(rezultat.token);
-      if (advId) localStorage.setItem('lex_advokat_id', advId);
-
-      window.location.href = 'tabla.html';
+      sacuvajSesiju(rezultat);
+      window.location.href = stranicaPosle();
 
     } catch (e) {
       const g = document.getElementById('globalnaGreska');
@@ -470,15 +464,6 @@
     }
   }
 
-  function dohvatiAdvokatId(token) {
-    try {
-        const deo = token.split('.')[1];
-        const dekodovan = JSON.parse(atob(deo));
-        return dekodovan.sub;
-    } catch (e) {
-        return null;
-    }
-  }
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter') registracija();

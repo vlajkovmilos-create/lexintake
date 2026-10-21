@@ -323,6 +323,34 @@
   }
 
   .dugme-odjava:hover { background: #fee2e2; }
+  .plan-status { font-size: 14px; color: #3d3830; margin-bottom: 16px; line-height: 1.6; }
+  .planovi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .plan {
+    border: 1px solid rgba(15,39,68,0.12);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .plan.trenutni { border-color: #0f2744; box-shadow: 0 0 0 1px #0f2744 inset; }
+  .plan-naziv { font-weight: 500; color: #0f2744; }
+  .plan-cena { font-size: 13px; color: #8a8070; margin-bottom: 8px; }
+  .plan a {
+    margin-top: auto;
+    text-align: center;
+    background: #0f2744;
+    color: #f5f0e8;
+    text-decoration: none;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+  .plan a.sekundarno { background: none; color: #0f2744; border: 1px solid rgba(15,39,68,0.2); }
+
+  @media (max-width: 640px) {
+    .planovi { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -392,6 +420,17 @@
     </div>
   </div>
 
+  <div class="kartica" id="pretplata">
+    <div class="kartica-zaglavlje">
+      <div class="kartica-naslov">Pretplata</div>
+      <div class="kartica-opis">Plaćanje se obavlja preko Lemon Squeezy-ja; pretplatu možete otkazati u bilo kom trenutku</div>
+    </div>
+    <div class="kartica-telo">
+      <div class="plan-status" id="planStatus">Učitavanje...</div>
+      <div class="planovi" id="planovi"></div>
+    </div>
+  </div>
+
   <div class="odjava-zona">
     <div class="odjava-info">
       <div class="odjava-naslov">Odjava sa naloga</div>
@@ -402,28 +441,64 @@
 
 </div>
 
+<script src="../js/zajednicko.js"></script>
 <script>
-  const API_URL = "https://lexintake-backend.onrender.com";
+  zahtevajPrijavu();
 
-  const token = localStorage.getItem('lex_token');
-  const advokatId = localStorage.getItem('lex_advokat_id');
-  if (!token || !advokatId) {
-    window.location.href = 'prijava.html';
+  const PLANOVI = [
+    { kod: 'starter', naziv: 'Starter', cena: '24.99 €/mes · do 30 prijema mesečno',
+      checkout: 'https://bookingpulse.lemonsqueezy.com/checkout/buy/91cb1cc1-5d11-4ba4-9d20-7978cca2c648' },
+    { kod: 'pro', naziv: 'Pro', cena: '49.99 €/mes · neograničeno prijema',
+      checkout: 'https://bookingpulse.lemonsqueezy.com/checkout/buy/8bb47868-1286-4dca-b912-b89b59b01df0' },
+    { kod: 'kancelarija', naziv: 'Kancelarija', cena: '99.99 €/mes',
+      checkout: 'https://bookingpulse.lemonsqueezy.com/checkout/buy/64e21535-0d18-4ff2-adce-8cc98dd20067' },
+  ];
+  const NAZIVI_STATUSA = {
+    probni_period: 'Probni period',
+    aktivna: 'Aktivna',
+    otkazana: 'Otkazana',
+    istekla: 'Istekla',
+  };
+
+  function datum(iso) {
+    return iso ? new Date(iso + 'Z').toLocaleDateString('sr-RS') : '';
   }
 
-  const linkUpitnik = `https://vlajkovmilos-create.github.io/lexintake/pages/upitnik.html?advokat=${advokatId}`;
-  document.getElementById('linkUpitnik').value = linkUpitnik;
+  // Checkout zna kom nalogu pripada uplata, i kad kupac plati sa drugog emaila
+  function checkoutLink(plan, ja) {
+    const parametri = new URLSearchParams({
+      'checkout[email]': ja.email,
+      'checkout[custom][advokat_id]': String(ja.id),
+    });
+    return `${plan.checkout}?${parametri.toString()}`;
+  }
+
+  function prikaziPretplatu(ja) {
+    let tekst = `Status: <strong>${esc(NAZIVI_STATUSA[ja.status_pretplate] || ja.status_pretplate)}</strong>`;
+    if (ja.status_pretplate === 'probni_period') tekst += ` · ističe ${esc(datum(ja.datum_isteka_probe))}`;
+    if (ja.status_pretplate === 'otkazana') tekst += ` · važi do ${esc(datum(ja.datum_isteka_pretplate))}`;
+    if (ja.status_pretplate === 'aktivna') tekst += ` · plan ${esc(ja.plan)}`;
+    if (ja.limit_prijema_mesecno) tekst += `<br>Ovog meseca: ${ja.prijema_ovog_meseca} / ${ja.limit_prijema_mesecno} prijema`;
+    document.getElementById('planStatus').innerHTML = tekst;
+
+    const imaPretplatu = ['aktivna', 'otkazana'].includes(ja.status_pretplate);
+    document.getElementById('planovi').innerHTML = PLANOVI.map(plan => {
+      const trenutni = imaPretplatu && ja.plan === plan.kod;
+      const dugme = trenutni
+        ? '<a class="sekundarno" href="https://app.lemonsqueezy.com/my-orders" target="_blank" rel="noopener">Upravljaj pretplatom</a>'
+        : `<a href="${esc(checkoutLink(plan, ja))}" target="_blank" rel="noopener">Izaberi</a>`;
+      return `<div class="plan${trenutni ? ' trenutni' : ''}">
+        <div class="plan-naziv">${plan.naziv}${trenutni ? ' · trenutni' : ''}</div>
+        <div class="plan-cena">${plan.cena}</div>
+        ${dugme}
+      </div>`;
+    }).join('');
+  }
 
   async function ucitajPodatke() {
     try {
-      const odg = await fetch(`${API_URL}/auth/ja`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!odg.ok) {
-        odjava();
-        return;
-      }
+      const odg = await apiAdvokat('/auth/ja');
+      if (!odg.ok) throw new Error();
 
       const podaci = await odg.json();
       document.getElementById('ime').value = podaci.ime || '';
@@ -431,6 +506,11 @@
       document.getElementById('kancelarija').value = podaci.naziv_kancelarije || '';
       document.getElementById('email').value = podaci.email || '';
 
+      const putanja = location.pathname.replace(/podesavanja\.html$/, 'upitnik.html');
+      document.getElementById('linkUpitnik').value = `${location.origin}${putanja}?k=${encodeURIComponent(podaci.javni_kod)}`;
+
+      prikaziPretplatu(podaci);
+      if (location.hash === '#pretplata') document.getElementById('pretplata').scrollIntoView();
     } catch (e) {
       document.getElementById('greskaPoruka').textContent = 'Greška pri učitavanju podataka.';
       document.getElementById('greskaPoruka').classList.add('vidljivo');
@@ -447,36 +527,37 @@
     uspeh.classList.remove('vidljivo');
     greska.classList.remove('vidljivo');
 
+    const ime = document.getElementById('ime').value.trim();
+    if (ime.length < 2) {
+      greska.textContent = 'Unesite ime i prezime.';
+      greska.classList.add('vidljivo');
+      return;
+    }
+
     dugme.disabled = true;
     spinner.style.display = 'block';
     dugmeTekst.textContent = 'Čuvanje...';
 
     const telo = {
-    ime: document.getElementById('ime').value.trim(),
-    telefon: document.getElementById('telefon').value.trim() || null,
-    naziv_kancelarije: document.getElementById('kancelarija').value.trim() || null
+      ime,
+      telefon: document.getElementById('telefon').value.trim() || null,
+      naziv_kancelarije: document.getElementById('kancelarija').value.trim() || null
     };
-    console.log('Šaljem:', JSON.stringify(telo));
 
     try {
-      const odg = await fetch(`${API_URL}/auth/azuriraj/${advokatId}`, {
+      const odg = await apiAdvokat('/auth/azuriraj', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify(telo)
       });
-
-      if (!odg.ok) throw new Error();
-
       const podaci = await odg.json();
+      if (!odg.ok) throw Object.assign(new Error(), { zaKorisnika: porukaGreske(podaci, 'Greška pri čuvanju. Pokušajte ponovo.') });
+
       localStorage.setItem('lex_ime', podaci.ime);
       uspeh.classList.add('vidljivo');
       setTimeout(() => uspeh.classList.remove('vidljivo'), 3000);
 
     } catch (e) {
-      greska.textContent = 'Greška pri čuvanju. Pokušajte ponovo.';
+      greska.textContent = e.zaKorisnika || 'Greška pri čuvanju. Pokušajte ponovo.';
       greska.classList.add('vidljivo');
     } finally {
       dugme.disabled = false;
@@ -496,11 +577,6 @@
         dugme.classList.remove('kopiran');
       }, 2000);
     });
-  }
-
-  function odjava() {
-    localStorage.clear();
-    window.location.href = 'prijava.html';
   }
 
   ucitajPodatke();

@@ -418,6 +418,68 @@
     color: #8a8070;
     font-size: 14px;
   }
+  /* Traka pretplate */
+  .traka-pretplate {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    color: #78350f;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .traka-pretplate.vidljivo { display: flex; }
+  .traka-pretplate.istekla { background: #fee2e2; border-color: #fca5a5; color: #7f1d1d; }
+  .traka-pretplate a {
+    background: #0f2744;
+    color: #f5f0e8;
+    text-decoration: none;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .oznaka-analiza { font-size: 11px; color: #8a8070; font-style: italic; }
+  .dugme-odjava {
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: rgba(245,240,232,0.5);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .dugme-odjava:hover { color: rgba(245,240,232,0.9); }
+  .ai-napomena { font-size: 11px; color: #8a8070; margin-top: 6px; }
+  .transkript { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding: 12px; background: #fafaf8; border-radius: 8px; }
+  .transkript-poruka { font-size: 13px; line-height: 1.5; padding: 8px 12px; border-radius: 8px; max-width: 88%; }
+  .transkript-poruka.assistant { background: #fff; border: 1px solid rgba(15,39,68,0.1); align-self: flex-start; }
+  .transkript-poruka.user { background: #0f2744; color: rgba(255,255,255,0.9); align-self: flex-end; }
+  details.sekcija-razmak summary { cursor: pointer; }
+  .dugme-obrisi {
+    display: block;
+    margin-top: 14px;
+    background: none;
+    border: none;
+    color: #b91c1c;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0;
+  }
+  .dugme-obrisi:hover { text-decoration: underline; }
+
+  @media (max-width: 720px) {
+    nav { padding: 0 16px; }
+    .sadrzaj { padding: 20px 16px; }
+    .statistike { grid-template-columns: repeat(2, 1fr); }
+    #tabelaSadrzaj { overflow-x: auto; }
+    .polje-red { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -430,10 +492,16 @@
   <div class="nav-desno" style="display:flex;align-items:center;gap:20px;">
   <span style="font-size:13px;color:rgba(245,240,232,0.6);" id="navInfo"></span>
   <a href="podesavanja.html" style="font-size:13px;color:rgba(245,240,232,0.5);text-decoration:none;transition:color 0.15s;" onmouseover="this.style.color='rgba(245,240,232,0.9)'" onmouseout="this.style.color='rgba(245,240,232,0.5)'">Podešavanja</a>
+  <button class="dugme-odjava" onclick="odjava()">Odjava</button>
   </div>
 </nav>
 
 <div class="sadrzaj">
+
+  <div class="traka-pretplate" id="trakaPretplate">
+    <span id="trakaTekst"></span>
+    <a href="podesavanja.html#pretplata">Izaberite plan</a>
+  </div>
 
   <!-- Statistike -->
   <div class="statistike">
@@ -483,21 +551,16 @@
   </div>
 </div>
 
+<script src="../js/zajednicko.js"></script>
 <script>
-  const token = localStorage.getItem('lex_token');
-  const advokatId = localStorage.getItem('lex_advokat_id');
-  if (!token || !advokatId) {
-    window.location.href = 'prijava.html';
-  }
-
-  const API_URL = "https://lexintake-backend.onrender.com";
-  const ADVOKAT_ID = advokatId || 1;
+  zahtevajPrijavu();
 
   let sviPrijemi = [];
   let trenutniPrijemId = null;
+  let tajmerOsvezavanja = null;
 
   function formatujDatum(iso) {
-    const d = new Date(iso);
+    const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');  // server šalje UTC
     return d.toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' })
       + ' · ' + d.toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' });
   }
@@ -513,26 +576,66 @@
     return `<span class="oznaka-status ${klasa}">${tekst}</span>`;
   }
 
-  function oznakaUrgentnosti(u) {
+  function oznakaUrgentnosti(p) {
+    if (p.analiza_status === 'u_obradi') return '<span class="oznaka-analiza">Analiza u toku…</span>';
+    if (p.analiza_status === 'neuspesna') return '<span class="oznaka-analiza">Analiza nije uspela</span>';
     const mapa = {
       visoka: 'urgentnost-visoka',
       srednja: 'urgentnost-srednja',
       niska: 'urgentnost-niska'
     };
-    if (!u) return '—';
-    return `<span class="oznaka-urgentnost ${mapa[u] || ''}">${u.charAt(0).toUpperCase() + u.slice(1)}</span>`;
+    const u = p.procena_urgentnosti;
+    if (!mapa[u]) return '—';
+    return `<span class="oznaka-urgentnost ${mapa[u]}">${u.charAt(0).toUpperCase() + u.slice(1)}</span>`;
+  }
+
+  // ── Pretplata ──
+  async function ucitajProfil() {
+    try {
+      const odg = await apiAdvokat('/auth/ja');
+      if (!odg.ok) return;
+      const ja = await odg.json();
+      localStorage.setItem('lex_ime', ja.ime);
+      document.getElementById('navInfo').textContent = ja.ime;
+
+      const traka = document.getElementById('trakaPretplate');
+      const tekst = document.getElementById('trakaTekst');
+      traka.classList.remove('vidljivo', 'istekla');
+
+      if (ja.status_pretplate === 'probni_period' && ja.datum_isteka_probe) {
+        const dana = Math.max(0, Math.ceil((new Date(ja.datum_isteka_probe + 'Z') - new Date()) / 86400000));
+        tekst.textContent = `Probni period ističe za ${dana} ${dana === 1 ? 'dan' : 'dana'}. Izaberite plan da biste nastavili da primate klijente.`;
+        traka.classList.add('vidljivo');
+      } else if (ja.status_pretplate === 'istekla') {
+        tekst.textContent = 'Vaša pretplata je istekla - upitnik trenutno ne prima nove klijente.';
+        traka.classList.add('vidljivo', 'istekla');
+      } else if (ja.status_pretplate === 'otkazana' && ja.datum_isteka_pretplate) {
+        tekst.textContent = `Pretplata je otkazana i važi do ${new Date(ja.datum_isteka_pretplate + 'Z').toLocaleDateString('sr-RS')}.`;
+        traka.classList.add('vidljivo');
+      } else if (ja.limit_prijema_mesecno && ja.prijema_ovog_meseca >= ja.limit_prijema_mesecno) {
+        tekst.textContent = `Iskoristili ste ${ja.limit_prijema_mesecno} prijema ovog meseca. Pređite na Pro plan za neograničen broj.`;
+        traka.classList.add('vidljivo');
+      }
+    } catch (e) {}
   }
 
   // ── Učitavanje ──
   async function ucitajPrijeme() {
     try {
-      const odg = await fetch(`${API_URL}/prijem/lista/${ADVOKAT_ID}`);
+      const odg = await apiAdvokat('/prijem/lista');
+      if (!odg.ok) throw new Error();
       sviPrijemi = await odg.json();
       prikaziTabelu();
       prikaziStatistike();
+
+      // Dok se neka analiza obrađuje, tabla se sama osvežava
+      clearTimeout(tajmerOsvezavanja);
+      if (sviPrijemi.some(p => p.analiza_status === 'u_obradi')) {
+        tajmerOsvezavanja = setTimeout(ucitajPrijeme, 8000);
+      }
     } catch (e) {
       document.getElementById('tabelaSadrzaj').innerHTML =
-        '<div class="ucitavanje">Greška pri učitavanju. Proverite da li server radi.</div>';
+        '<div class="ucitavanje">Greška pri učitavanju. Server se možda budi - osvežite stranicu za minut.</div>';
     }
   }
 
@@ -547,10 +650,7 @@
     document.getElementById('statZakazano').textContent = zakazano;
     document.getElementById('statUrgentno').textContent = urgentno;
     document.getElementById('navInfo').textContent = localStorage.getItem('lex_ime') || '';
-
-    if (novi > 0) {
-      document.getElementById('statNoviDelta').textContent = `${novi} čeka odgovor`;
-    }
+    document.getElementById('statNoviDelta').textContent = novi > 0 ? `${novi} čeka odgovor` : '';
   }
 
   function prikaziTabelu() {
@@ -562,7 +662,7 @@
       el.innerHTML = `
         <div class="prazno">
           <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <p>Još uvek nema prijema klijenata.</p>
+          <p>Još uvek nema prijema klijenata. Link za upitnik pronađite u <a href="podesavanja.html">Podešavanjima</a>.</p>
         </div>`;
       return;
     }
@@ -581,20 +681,24 @@
         </thead>
         <tbody>
           ${sviPrijemi.map(p => `
-            <tr onclick="otvoriModal(${p.id})">
+            <tr onclick="otvoriModal(${Number(p.id)})">
               <td>
-                <span class="klijent-ime">${p.klijent_ime || 'Nepoznat'}</span>
-                <span class="klijent-kontakt">${p.klijent_email || p.klijent_telefon || '—'}</span>
+                <span class="klijent-ime">${esc(p.klijent_ime || 'Nepoznat')}</span>
+                <span class="klijent-kontakt">${esc(p.klijent_email || p.klijent_telefon || '—')}</span>
               </td>
-              <td>${p.oblast_prava || '—'}</td>
+              <td>${esc(p.oblast_prava || '—')}</td>
               <td>${formatujDatum(p.datum_prijema)}</td>
               <td>${oznakaStatusa(p.status)}</td>
-              <td>${oznakaUrgentnosti(p.procena_urgentnosti)}</td>
-              <td><button class="dugme-pregled" onclick="event.stopPropagation();otvoriModal(${p.id})">Pregled</button></td>
+              <td>${oznakaUrgentnosti(p)}</td>
+              <td><button class="dugme-pregled" onclick="event.stopPropagation();otvoriModal(${Number(p.id)})">Pregled</button></td>
             </tr>
           `).join('')}
         </tbody>
       </table>`;
+  }
+
+  function polje(oznaka, vrednost, puno = false) {
+    return `<div class="polje${puno ? ' puno' : ''}"><span class="polje-oznaka">${oznaka}</span><span class="polje-vrednost">${escRedovi(vrednost || '—')}</span></div>`;
   }
 
   async function otvoriModal(prijem_id) {
@@ -603,49 +707,72 @@
     document.getElementById('modalTelo').innerHTML = '<div class="ucitavanje">Učitavanje...</div>';
 
     try {
-      const odg = await fetch(`${API_URL}/prijem/detalji/${prijem_id}`);
+      const odg = await apiAdvokat(`/prijem/detalji/${prijem_id}`);
+      if (!odg.ok) throw new Error();
       const p = await odg.json();
 
       document.getElementById('modalNaslov').textContent = p.klijent_ime || 'Detalji prijema';
 
-      const sirinaTrake = {visoka: '85%', srednja: '50%', niska: '20%'}[p.procena_urgentnosti] || '50%';
-      const klasaTrake = `traka-${p.procena_urgentnosti || 'srednja'}`;
+      const urgentnost = ['visoka', 'srednja', 'niska'].includes(p.procena_urgentnosti) ? p.procena_urgentnosti : null;
+      const sirinaTrake = {visoka: '85%', srednja: '50%', niska: '20%'}[urgentnost] || '0%';
+
+      let analizaHtml;
+      if (p.analiza_status === 'u_obradi') {
+        analizaHtml = '<div class="ai-blok">Analiza je u toku - osvežite za koji trenutak.</div>';
+      } else if (p.analiza_status === 'neuspesna') {
+        analizaHtml = `<div class="ai-blok">Analiza nije uspela. Transkript razgovora je sačuvan ispod.</div>
+          <button class="dugme-sacuvaj" style="margin-top:10px" onclick="ponoviAnalizu()">Pokreni analizu ponovo</button>`;
+      } else {
+        analizaHtml = `
+          <div class="ai-blok">${escRedovi(p.ai_analiza || 'Analiza nije dostupna.')}</div>
+          <div class="ai-napomena">AI predlog na osnovu razgovora - proverite pre upotrebe; nije pravni savet.</div>
+          <div class="polje puno" style="margin-top:10px">
+            <span class="polje-oznaka">Preporučeni koraci</span>
+            <span class="polje-vrednost">${escRedovi(p.preporuceni_koraci || '—')}</span>
+          </div>
+          <div class="urgentnost-traka">
+            <span class="traka-oznaka">Urgentnost:</span>
+            <div class="traka-pozadina"><div class="traka-punjenje" style="width:${sirinaTrake}"></div></div>
+            <span class="traka-vrednost traka-${urgentnost || 'srednja'}">${urgentnost ? urgentnost.charAt(0).toUpperCase() + urgentnost.slice(1) : '—'}</span>
+          </div>`;
+      }
+
+      const transkript = (p.razgovor || []).map(r =>
+        `<div class="transkript-poruka ${r.role === 'user' ? 'user' : 'assistant'}">${escRedovi(r.content)}</div>`
+      ).join('');
 
       document.getElementById('modalTelo').innerHTML = `
         <div class="sekcija-razmak">
           <div class="sekcija-oznaka">Kontakt podaci</div>
           <div class="polje-red">
-            <div class="polje"><span class="polje-oznaka">Ime i prezime</span><span class="polje-vrednost">${p.klijent_ime || '—'}</span></div>
-            <div class="polje"><span class="polje-oznaka">Telefon</span><span class="polje-vrednost">${p.klijent_telefon || '—'}</span></div>
-            <div class="polje"><span class="polje-oznaka">Email</span><span class="polje-vrednost">${p.klijent_email || '—'}</span></div>
-            <div class="polje"><span class="polje-oznaka">Datum prijema</span><span class="polje-vrednost">${formatujDatum(p.datum_prijema)}</span></div>
+            ${polje('Ime i prezime', p.klijent_ime)}
+            ${polje('Telefon', p.klijent_telefon)}
+            ${polje('Email', p.klijent_email)}
+            ${polje('Datum prijema', formatujDatum(p.datum_prijema))}
           </div>
         </div>
 
         <div class="sekcija-razmak">
           <div class="sekcija-oznaka">Slučaj</div>
           <div class="polje-red">
-            <div class="polje"><span class="polje-oznaka">Oblast prava</span><span class="polje-vrednost" style="font-weight:500;color:#0f2744">${p.oblast_prava || '—'}</span></div>
+            <div class="polje"><span class="polje-oznaka">Oblast prava</span><span class="polje-vrednost" style="font-weight:500;color:#0f2744">${esc(p.oblast_prava || '—')}</span></div>
             <div class="polje"><span class="polje-oznaka">Status</span><span class="polje-vrednost">${oznakaStatusa(p.status)}</span></div>
-            <div class="polje puno"><span class="polje-oznaka">Opis problema</span><span class="polje-vrednost">${p.opis_problema || '—'}</span></div>
-            <div class="polje puno"><span class="polje-oznaka">Detalji</span><span class="polje-vrednost">${p.detalji_slucaja || '—'}</span></div>
-            <div class="polje puno"><span class="polje-oznaka">Dokumenti</span><span class="polje-vrednost">${p.dokumenti_napomena || '—'}</span></div>
+            ${polje('Opis problema', p.opis_problema, true)}
+            ${polje('Detalji', p.detalji_slucaja, true)}
+            ${polje('Dokumenti', p.dokumenti_napomena, true)}
           </div>
         </div>
 
         <div class="sekcija-razmak">
           <div class="sekcija-oznaka">AI analiza</div>
-          <div class="ai-blok">${p.ai_analiza || 'Analiza nije dostupna.'}</div>
-          <div class="polje puno" style="margin-top:10px">
-            <span class="polje-oznaka">Preporučeni koraci</span>
-            <span class="polje-vrednost">${p.preporuceni_koraci || '—'}</span>
-          </div>
-          <div class="urgentnost-traka">
-            <span class="traka-oznaka">Urgentnost:</span>
-            <div class="traka-pozadina"><div class="traka-punjenje" style="width:${sirinaTrake}"></div></div>
-            <span class="traka-vrednost ${klasaTrake}">${(p.procena_urgentnosti || 'srednja').charAt(0).toUpperCase() + (p.procena_urgentnosti || 'srednja').slice(1)}</span>
-          </div>
+          ${analizaHtml}
         </div>
+
+        ${transkript ? `
+        <details class="sekcija-razmak">
+          <summary class="sekcija-oznaka">Transkript razgovora</summary>
+          <div class="transkript">${transkript}</div>
+        </details>` : ''}
 
         <div class="sekcija-razmak">
           <div class="sekcija-oznaka">Promena statusa</div>
@@ -656,7 +783,8 @@
             <option value="zatvoreno" ${p.status === 'zatvoreno' ? 'selected' : ''}>Zatvoreno</option>
           </select>
           <button class="dugme-sacuvaj" onclick="sacuvajStatus()">Sačuvaj status</button>
-          <button class="dugme-pdf" onclick="preuzmiPdf()">Preuzmi PDF izveštaj</button>
+          <button class="dugme-pdf" id="dugmePdf" onclick="preuzmiPdf()">Preuzmi PDF izveštaj</button>
+          <button class="dugme-obrisi" onclick="obrisiPrijem()">Trajno obriši prijem</button>
         </div>
       `;
     } catch (e) {
@@ -667,11 +795,11 @@
   async function sacuvajStatus() {
     const status = document.getElementById('statusIzbornik').value;
     try {
-      await fetch(`${API_URL}/prijem/status/${trenutniPrijemId}`, {
+      const odg = await apiAdvokat(`/prijem/status/${trenutniPrijemId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
+      if (!odg.ok) throw new Error();
       await ucitajPrijeme();
       zatvoriModalDugme();
     } catch (e) {
@@ -679,9 +807,56 @@
     }
   }
 
-  function preuzmiPdf() {
+  async function obrisiPrijem() {
+    if (!confirm('Prijem i ceo razgovor biće trajno obrisani. Nastaviti?')) return;
+    try {
+      const odg = await apiAdvokat(`/prijem/${trenutniPrijemId}`, { method: 'DELETE' });
+      if (!odg.ok) throw new Error();
+      zatvoriModalDugme();
+      await ucitajPrijeme();
+    } catch (e) {
+      alert('Greška pri brisanju prijema.');
+    }
+  }
+
+  async function ponoviAnalizu() {
+    try {
+      const odg = await apiAdvokat(`/prijem/analiza/${trenutniPrijemId}`, { method: 'POST' });
+      if (!odg.ok) {
+        alert(porukaGreske(await odg.json(), 'Analiza nije pokrenuta.'));
+        return;
+      }
+      zatvoriModalDugme();
+      await ucitajPrijeme();
+    } catch (e) {
+      alert('Analiza nije pokrenuta.');
+    }
+  }
+
+  // PDF se preuzima preko fetch-a jer ruta zahteva token
+  async function preuzmiPdf() {
     if (!trenutniPrijemId) return;
-    window.open(`${API_URL}/prijem/pdf/${trenutniPrijemId}`, '_blank');
+    const dugme = document.getElementById('dugmePdf');
+    dugme.disabled = true;
+    dugme.textContent = 'Priprema PDF-a...';
+    try {
+      const odg = await apiAdvokat(`/prijem/pdf/${trenutniPrijemId}`);
+      if (!odg.ok) throw new Error();
+      const blob = await odg.blob();
+      const ime = (odg.headers.get('Content-Disposition') || '').match(/filename="?([^"]+)"?/);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = ime ? ime[1] : `prijem_${trenutniPrijemId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    } catch (e) {
+      alert('Greška pri preuzimanju PDF-a.');
+    } finally {
+      dugme.disabled = false;
+      dugme.textContent = 'Preuzmi PDF izveštaj';
+    }
   }
 
   function zatvoriModal(e) {
@@ -695,7 +870,16 @@
     trenutniPrijemId = null;
   }
 
-  ucitajPrijeme();
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') zatvoriModalDugme();
+  });
+
+  ucitajProfil();
+  ucitajPrijeme().then(() => {
+    // Link iz mejla: tabla.html?prijem=ID otvara taj prijem
+    const izMejla = new URLSearchParams(window.location.search).get('prijem');
+    if (izMejla && /^\d+$/.test(izMejla)) otvoriModal(Number(izMejla));
+  });
 </script>
 </body>
 </html>
