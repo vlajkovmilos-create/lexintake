@@ -10,8 +10,9 @@ if settings.database_url.startswith("sqlite"):
         connect_args={"check_same_thread": False}
     )
 else:
-    engine = create_engine(settings.database_url)
-    
+    # Neon gasi konekcije koje miruju - pre_ping ih proverava pre upotrebe
+    engine = create_engine(settings.database_url, pool_pre_ping=True, pool_recycle=300)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

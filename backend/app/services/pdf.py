@@ -1,18 +1,23 @@
 import io
+import json
+from pathlib import Path
+from xml.sax.saxutils import escape
+
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-
-FONT_DIR = '/usr/share/fonts/truetype/dejavu/'
-
-pdfmetrics.registerFont(TTFont('DejaVu', FONT_DIR + 'DejaVuSans.ttf'))
-pdfmetrics.registerFont(TTFont('DejaVu-Bold', FONT_DIR + 'DejaVuSans-Bold.ttf'))
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.colors import HexColor, white, black
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.colors import HexColor, white
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
-from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from ..models import Prijem, Advokat
+
+# Fontovi su u repou jer standardni PDF fontovi nemaju č, ć, đ
+FONT_DIR = Path(__file__).resolve().parent.parent / "fonti"
+
+pdfmetrics.registerFont(TTFont('DejaVu', str(FONT_DIR / 'DejaVuSans.ttf')))
+pdfmetrics.registerFont(TTFont('DejaVu-Bold', str(FONT_DIR / 'DejaVuSans-Bold.ttf')))
+pdfmetrics.registerFontFamily('DejaVu', normal='DejaVu', bold='DejaVu-Bold', italic='DejaVu', boldItalic='DejaVu-Bold')
 
 NAVY = HexColor('#0f2744')
 KREM = HexColor('#f5f0e8')
@@ -20,6 +25,7 @@ ZLATO = HexColor('#c9a84c')
 SIVA = HexColor('#8a8070')
 SVETLO_PLAVA = HexColor('#eef3f8')
 POZADINA = HexColor('#fafaf8')
+IVICA = HexColor('#ede7d9')
 
 def boja_urgentnosti(u):
     return {
@@ -35,6 +41,43 @@ def tekst_urgentnosti(u):
         "niska": "Niska"
     }.get(u, "Nije određena")
 
+def _t(vrednost) -> str:
+    """Escape-uje tekst za ReportLab Paragraph i čuva prelome redova."""
+    return escape(str(vrednost or "")).replace("\n", "<br/>")
+
+def _transkript(razgovor_json: str) -> list:
+    try:
+        poruke = json.loads(razgovor_json or "[]")
+    except json.JSONDecodeError:
+        return []
+    rezultat = []
+    for p in poruke:
+        sadrzaj = p.get("content", "")
+        if isinstance(sadrzaj, list):
+            sadrzaj = "\n".join(b.get("text", "") for b in sadrzaj if isinstance(b, dict) and b.get("type") == "text")
+        sadrzaj = sadrzaj.replace("RAZGOVOR_ZAVRŠEN:", "").strip()
+        if sadrzaj:
+            rezultat.append((p.get("role"), sadrzaj))
+    return rezultat
+
+def _stil(ime, **kwargs) -> ParagraphStyle:
+    osnovno = dict(fontName='DejaVu', fontSize=11, textColor=HexColor('#1a1610'), leading=16)
+    osnovno.update(kwargs)
+    return ParagraphStyle(ime, **osnovno)
+
+def _kutija(sadrzaj, pozadina=POZADINA, levo=None) -> Table:
+    t = Table([[sadrzaj]], colWidths=[17*cm])
+    stil = [
+        ('BACKGROUND', (0, 0), (-1, -1), pozadina),
+        ('PADDING', (0, 0), (-1, -1), 10),
+    ]
+    if levo:
+        stil.append(('LINEBEFORE', (0, 0), (0, -1), 3, levo))
+    else:
+        stil.append(('BOX', (0, 0), (-1, -1), 0.5, IVICA))
+    t.setStyle(TableStyle(stil))
+    return t
+
 def generisi_pdf(prijem: Prijem, advokat: Advokat) -> bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -43,121 +86,70 @@ def generisi_pdf(prijem: Prijem, advokat: Advokat) -> bytes:
         rightMargin=2*cm,
         leftMargin=2*cm,
         topMargin=2*cm,
-        bottomMargin=2*cm
+        bottomMargin=2*cm,
+        title=f"Prijem #{prijem.id}",
+        author="LexIntake"
     )
 
-    stilovi = getSampleStyleSheet()
     elementi = []
 
-    stil_naslov = ParagraphStyle(
-        'Naslov',
-        fontName='DejaVu-Bold',
-        fontSize=20,
-        textColor=NAVY,
-        spaceAfter=4,
-        leading=24
-    )
-
-    stil_podnaslov = ParagraphStyle(
-        'Podnaslov',
-        fontName='DejaVu',
-        fontSize=10,
-        textColor=SIVA,
-        spaceAfter=16
-    )
-
-    stil_sekcija = ParagraphStyle(
-        'Sekcija',
-        fontName='DejaVu-Bold',
-        fontSize=9,
-        textColor=SIVA,
-        spaceBefore=16,
-        spaceAfter=8,
-        textTransform='uppercase',
-        letterSpacing=1
-    )
-
-    stil_oznaka = ParagraphStyle(
-        'Oznaka',
-        fontName='DejaVu-Bold',
-        fontSize=9,
-        textColor=SIVA,
-        spaceAfter=2
-    )
-
-    stil_vrednost = ParagraphStyle(
-        'Vrednost',
-        fontName='DejaVu',
-        fontSize=11,
-        textColor=HexColor('#1a1610'),
-        spaceAfter=4,
-        leading=16
-    )
-
-    stil_ai = ParagraphStyle(
-        'AI',
-        fontName='DejaVu',
-        fontSize=11,
-        textColor=NAVY,
-        leading=17,
-        leftIndent=12,
-        spaceAfter=8
-    )
+    stil_naslov = _stil('Naslov', fontName='DejaVu-Bold', fontSize=20, textColor=NAVY, spaceAfter=4, leading=24)
+    stil_podnaslov = _stil('Podnaslov', fontSize=10, textColor=SIVA, spaceAfter=16)
+    stil_sekcija = _stil('Sekcija', fontName='DejaVu-Bold', fontSize=9, textColor=SIVA, spaceBefore=16, spaceAfter=8, keepWithNext=1)
+    stil_vrednost = _stil('Vrednost', spaceAfter=4)
+    stil_ai = _stil('AI', textColor=NAVY, leading=17)
+    stil_napomena = _stil('Napomena', fontSize=8, textColor=SIVA, leading=11, spaceBefore=4)
+    stil_polje = _stil('Polje')
+    stil_klijent = _stil('Klijent', fontSize=10, leading=14, spaceAfter=6)
+    stil_asistent = _stil('Asistent', fontSize=10, leading=14, spaceAfter=6, textColor=HexColor('#3d3830'), leftIndent=12)
+    stil_podnozje = _stil('Podnozje', fontSize=9, textColor=SIVA, leading=12)
 
     datum = prijem.datum_prijema.strftime("%d.%m.%Y. u %H:%M")
 
-    zaglavlje_podaci = [
-        [
-            Paragraph('<font color="#f5f0e8" size="16"><b>LexIntake</b></font>', stilovi['Normal']),
-            Paragraph(
-                f'<font color="white" size="9">Urgentnost: <b>{tekst_urgentnosti(prijem.procena_urgentnosti)}</b></font>',
-                ParagraphStyle('urg', fontName='Helvetica', fontSize=9, textColor=white, alignment=2)
-            )
-        ]
-    ]
-
-    tabela_zaglavlje = Table(zaglavlje_podaci, colWidths=[12*cm, 5*cm])
+    tabela_zaglavlje = Table([[
+        Paragraph('<b>LexIntake</b>', _stil('Logo', fontSize=16, leading=20, textColor=KREM)),
+        Paragraph(
+            f'Urgentnost: <b>{tekst_urgentnosti(prijem.procena_urgentnosti)}</b>',
+            _stil('Urg', fontSize=9, leading=12, textColor=white, alignment=2)
+        )
+    ]], colWidths=[11*cm, 6*cm])
     tabela_zaglavlje.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), NAVY),
-        ('PADDING', (0, 0), (-1, -1), 16),
+        ('PADDING', (0, 0), (-1, -1), 14),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
         ('ROUNDEDCORNERS', [6, 6, 6, 6]),
     ]))
     elementi.append(tabela_zaglavlje)
     elementi.append(Spacer(1, 0.5*cm))
 
-    elementi.append(Paragraph(prijem.klijent_ime or 'Nepoznat klijent', stil_naslov))
+    elementi.append(Paragraph(_t(prijem.klijent_ime or 'Nepoznat klijent'), stil_naslov))
     elementi.append(Paragraph(
-        f'Prijem #{prijem.id} · {datum} · {advokat.naziv_kancelarije or advokat.ime}',
+        f'Prijem #{prijem.id} · {datum} · {_t(advokat.naziv_kancelarije or advokat.ime)}',
         stil_podnaslov
     ))
     elementi.append(HRFlowable(width="100%", thickness=0.5, color=HexColor('#e0d8cc')))
 
-    elementi.append(Paragraph('Kontakt podaci', stil_sekcija))
+    elementi.append(Paragraph('KONTAKT PODACI', stil_sekcija))
 
-    kontakt_podaci = [
-        [
-            _polje_tabela('Ime i prezime', prijem.klijent_ime or '—'),
-            _polje_tabela('Telefon', prijem.klijent_telefon or '—'),
-        ],
-        [
-            _polje_tabela('Email', prijem.klijent_email or '—'),
-            _polje_tabela('Oblast prava', prijem.oblast_prava or '—', bold=True),
-        ]
-    ]
+    def polje(oznaka, vrednost, bold=False):
+        tekst = f'<font size="8" color="#8a8070"><b>{oznaka.upper()}</b></font><br/>'
+        vrednost = _t(vrednost or '—')
+        tekst += f'<b><font color="#0f2744">{vrednost}</font></b>' if bold else vrednost
+        return Paragraph(tekst, stil_polje)
 
-    tabela_kontakt = Table(kontakt_podaci, colWidths=[8.5*cm, 8.5*cm], hAlign='LEFT')
+    tabela_kontakt = Table([
+        [polje('Ime i prezime', prijem.klijent_ime), polje('Telefon', prijem.klijent_telefon)],
+        [polje('Email', prijem.klijent_email), polje('Oblast prava', prijem.oblast_prava, bold=True)],
+    ], colWidths=[8.5*cm, 8.5*cm], hAlign='LEFT')
     tabela_kontakt.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), POZADINA),
         ('PADDING', (0, 0), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#ede7d9')),
-        ('ROUNDEDCORNERS', [4, 4, 4, 4]),
+        ('GRID', (0, 0), (-1, -1), 0.5, IVICA),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
     elementi.append(tabela_kontakt)
 
-    elementi.append(Paragraph('Opis slučaja', stil_sekcija))
+    elementi.append(Paragraph('OPIS SLUČAJA', stil_sekcija))
 
     for oznaka, vrednost in [
         ('Opis problema', prijem.opis_problema),
@@ -165,83 +157,48 @@ def generisi_pdf(prijem: Prijem, advokat: Advokat) -> bytes:
         ('Dokumenti', prijem.dokumenti_napomena),
     ]:
         if vrednost:
-            podaci = [[
-                Paragraph(f'<b>{oznaka}</b>', stil_oznaka),
-            ], [
-                Paragraph(vrednost, stil_vrednost),
-            ]]
-            t = Table([[Paragraph(f'<b>{oznaka}</b><br/>{vrednost}', stil_vrednost)]], colWidths=[17*cm])
-            t.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), POZADINA),
-                ('PADDING', (0, 0), (-1, -1), 10),
-                ('BOX', (0, 0), (-1, -1), 0.5, HexColor('#ede7d9')),
-                ('ROUNDEDCORNERS', [4, 4, 4, 4]),
-            ]))
-            elementi.append(t)
+            elementi.append(_kutija(Paragraph(f'<b>{oznaka}</b><br/>{_t(vrednost)}', stil_vrednost)))
             elementi.append(Spacer(1, 0.2*cm))
 
-    elementi.append(Paragraph('AI pravna analiza', stil_sekcija))
-
-    ai_tabela = Table(
-        [[Paragraph(prijem.ai_analiza or 'Analiza nije dostupna.', stil_ai)]],
-        colWidths=[17*cm]
-    )
-    ai_tabela.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), SVETLO_PLAVA),
-        ('PADDING', (0, 0), (-1, -1), 14),
-        ('LINEBEFORE', (0, 0), (0, -1), 3, NAVY),
-        ('ROUNDEDCORNERS', [0, 4, 4, 0]),
-    ]))
-    elementi.append(ai_tabela)
+    elementi.append(Paragraph('AI ANALIZA', stil_sekcija))
+    elementi.append(_kutija(
+        Paragraph(_t(prijem.ai_analiza or 'Analiza nije dostupna.'), stil_ai),
+        pozadina=SVETLO_PLAVA, levo=NAVY
+    ))
+    elementi.append(Paragraph(
+        'Analizu je generisao AI model na osnovu razgovora sa klijentom. Predlog je informativan i treba ga proveriti; nije pravni savet.',
+        stil_napomena
+    ))
     elementi.append(Spacer(1, 0.3*cm))
 
     if prijem.preporuceni_koraci:
-        t = Table(
-            [[Paragraph(f'<b>Preporučeni koraci</b><br/>{prijem.preporuceni_koraci}', stil_vrednost)]],
-            colWidths=[17*cm]
-        )
-        t.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), POZADINA),
-            ('PADDING', (0, 0), (-1, -1), 10),
-            ('BOX', (0, 0), (-1, -1), 0.5, HexColor('#ede7d9')),
-            ('ROUNDEDCORNERS', [4, 4, 4, 4]),
-        ]))
-        elementi.append(t)
+        elementi.append(_kutija(Paragraph(f'<b>Preporučeni koraci</b><br/>{_t(prijem.preporuceni_koraci)}', stil_vrednost)))
 
     elementi.append(Spacer(1, 0.3*cm))
     urg_boja = boja_urgentnosti(prijem.procena_urgentnosti)
-    urg_tekst = tekst_urgentnosti(prijem.procena_urgentnosti)
     elementi.append(Paragraph(
-        f'Procena urgentnosti: <font color="#{urg_boja.hexval()[2:]}"><b>{urg_tekst}</b></font>',
-        ParagraphStyle('urg2', fontName='Helvetica', fontSize=11, textColor=SIVA)
+        f'Procena urgentnosti: <font color="#{urg_boja.hexval()[2:]}"><b>{tekst_urgentnosti(prijem.procena_urgentnosti)}</b></font>',
+        _stil('Urg2', textColor=SIVA)
     ))
+
+    transkript = _transkript(prijem.razgovor_json)
+    if transkript:
+        elementi.append(Paragraph('TRANSKRIPT RAZGOVORA', stil_sekcija))
+        for uloga, tekst in transkript:
+            if uloga == "user":
+                elementi.append(Paragraph(f'<b>Klijent:</b> {_t(tekst)}', stil_klijent))
+            else:
+                elementi.append(Paragraph(f'<b>Asistent:</b> {_t(tekst)}', stil_asistent))
 
     elementi.append(Spacer(1, 0.5*cm))
     elementi.append(HRFlowable(width="100%", thickness=0.5, color=HexColor('#e0d8cc')))
     elementi.append(Spacer(1, 0.2*cm))
-    podnozje_podaci = [[
-        Paragraph('LexIntake · Automatski generisan izveštaj', ParagraphStyle('pf', fontName='Helvetica', fontSize=9, textColor=SIVA)),
-        Paragraph(f'Prijem #{prijem.id} · {datum}', ParagraphStyle('pf2', fontName='Helvetica', fontSize=9, textColor=SIVA, alignment=2))
-    ]]
-    tabela_podnozje = Table(podnozje_podaci, colWidths=[10*cm, 7*cm])
-    tabela_podnozje.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP')]))
+    tabela_podnozje = Table([[
+        Paragraph('LexIntake · Automatski generisan izveštaj · Poverljivo', stil_podnozje),
+        Paragraph(f'Prijem #{prijem.id} · {datum}', _stil('Podnozje2', fontSize=9, textColor=SIVA, leading=12, alignment=2))
+    ]], colWidths=[10*cm, 7*cm])
+    tabela_podnozje.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')]))
     elementi.append(tabela_podnozje)
 
     doc.build(elementi)
     return buffer.getvalue()
-
-
-def _polje_tabela(oznaka: str, vrednost: str, bold: bool = False) -> Paragraph:
-    stil = ParagraphStyle(
-        'Polje',
-        fontName='Helvetica',
-        fontSize=11,
-        textColor=HexColor('#1a1610'),
-        leading=16
-    )
-    tekst = f'<font size="9" color="#8a8070"><b>{oznaka.upper()}</b></font><br/>'
-    if bold:
-        tekst += f'<b><font color="#0f2744">{vrednost}</font></b>'
-    else:
-        tekst += vrednost
-    return Paragraph(tekst, stil)

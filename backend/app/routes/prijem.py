@@ -1,90 +1,150 @@
-from fastapi.responses import Response
-from ..services.pdf import generisi_pdf
 import json
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
+import re
+import unicodedata
 from typing import Optional
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from fastapi.responses import Response
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from ..config import get_settings
 from ..database import get_db
-from ..models import Prijem, Advokat
-from ..services.ai import nastavi_razgovor, generisi_analizu
-from ..services.email import posalji_izvestaj_advokatu
+from ..models import Prijem, Advokat, Razgovor
+from ..services.auth import trenutni_advokat
+from ..services.pdf import generisi_pdf
+from ..services.placanje import moze_da_prima_prijeme
+from ..services import prijem as servis
+from ..utils.ogranicenje import ogranici, ip_klijenta
+
+settings = get_settings()
 
 ruter = APIRouter(prefix="/prijem", tags=["Prijem klijenta"])
 
+PORUKA_NE_PRIMA = "Ova advokatska kancelarija trenutno ne prima nove prijeme. Molimo pokušajte kasnije ili kontaktirajte kancelariju direktno."
+DOZVOLJENI_STATUSI = ["novi", "na_pregledu", "zakazano", "zatvoreno"]
+
+
+class PocetakUlaz(BaseModel):
+    kod: str = Field(min_length=4, max_length=32)
+    saglasnost: bool
+
+class PocetakIzlaz(BaseModel):
+    sesija_id: str
+    odgovor: str
+    naziv_kancelarije: str
+
 class PorukaUlaz(BaseModel):
-    advokat_id: int
-    sesija_id: Optional[str] = None
-    poruka: str
-    istorija: list = []
+    sesija_id: str = Field(min_length=36, max_length=36)
+    poruka: str = Field(min_length=1, max_length=2000)
 
 class PorukaIzlaz(BaseModel):
     odgovor: str
     sesija_id: str
-    istorija: list
     zavrseno: bool
     prijem_id: Optional[int] = None
 
 class StatusAzuriranje(BaseModel):
     status: str
 
-@ruter.post("/poruka", response_model=PorukaIzlaz)
-def posalji_poruku(podaci: PorukaUlaz, db: Session = Depends(get_db)):
-    advokat = db.query(Advokat).filter(Advokat.id == podaci.advokat_id).first()
+
+def _naziv(advokat: Advokat) -> str:
+    return advokat.naziv_kancelarije or advokat.ime
+
+
+# ── Javne rute (klijent) ──
+
+@ruter.get("/kancelarija/{kod}")
+def info_kancelarije(kod: str, db: Session = Depends(get_db)):
+    advokat = db.query(Advokat).filter(Advokat.javni_kod == kod).first()
     if not advokat:
-        raise HTTPException(status_code=404, detail="Advokat nije pronađen")
+        raise HTTPException(status_code=404, detail="Link upitnika nije ispravan.")
+    return {"naziv_kancelarije": _naziv(advokat), "prima_prijeme": moze_da_prima_prijeme(db, advokat)}
 
-    dozvoljeni_statusi = ["probni_period", "aktivna"]
-    if advokat.status_pretplate not in dozvoljeni_statusi:
-        raise HTTPException(
-            status_code=403,
-            detail="Ova advokatska kancelarija trenutno ne prima nove prijeme. Molimo pokušajte kasnije ili kontaktirajte kancelariju direktno."
-        )
 
-    istorija = podaci.istorija
-    if not istorija:
-        uvodna = (
-            f"Dobrodošli u advokatsku kancelariju {advokat.naziv_kancelarije or advokat.ime}. "
-            "Ja sam AI asistent koji će prikupiti osnovne informacije o vašem slučaju pre konsultacije sa advokatom. "
-            "Sve što navedete je poverljivo. Kako se zovete i koji je vaš kontakt telefon ili email?"
-        )
-        istorija = [{"role": "assistant", "content": uvodna}]
-        return PorukaIzlaz(
-            odgovor=uvodna,
-            sesija_id=podaci.sesija_id or _generisi_sesiju(),
-            istorija=istorija,
-            zavrseno=False
-        )
+@ruter.post("/razgovor", response_model=PocetakIzlaz)
+def zapocni_razgovor(podaci: PocetakUlaz, request: Request, db: Session = Depends(get_db)):
+    if not podaci.saglasnost:
+        raise HTTPException(status_code=400, detail="Za nastavak je potrebna saglasnost za obradu podataka.")
 
-    odgovor = nastavi_razgovor(istorija, podaci.poruka)
+    advokat = db.query(Advokat).filter(Advokat.javni_kod == podaci.kod).first()
+    if not advokat:
+        raise HTTPException(status_code=404, detail="Link upitnika nije ispravan.")
+    if not moze_da_prima_prijeme(db, advokat):
+        raise HTTPException(status_code=403, detail=PORUKA_NE_PRIMA)
 
-    nova_istorija = istorija + [
-        {"role": "user", "content": podaci.poruka},
-        {"role": "assistant", "content": odgovor}
-    ]
+    ogranici(f"razgovor:{ip_klijenta(request)}", settings.max_razgovora_po_ip_na_sat, 3600)
 
-    zavrseno = "RAZGOVOR_ZAVRŠEN:" in odgovor
-    prijem_id = None
+    try:
+        razgovor = servis.zapocni_razgovor(db, advokat)
+    except servis.GreskaPrijema as g:
+        raise HTTPException(status_code=g.status, detail=g.poruka)
 
-    if zavrseno:
-        prijem_id = _sacuvaj_prijem(
-            db=db,
-            advokat_id=podaci.advokat_id,
-            istorija_json=json.dumps(nova_istorija, ensure_ascii=False)
-        )
+    return PocetakIzlaz(sesija_id=razgovor.id, odgovor=razgovor.uvodna_poruka, naziv_kancelarije=_naziv(advokat))
+
+
+@ruter.get("/razgovor/{sesija_id}")
+def vrati_razgovor(sesija_id: str, db: Session = Depends(get_db)):
+    """Vraća razgovor za prikaz, npr. posle osvežavanja stranice."""
+    razgovor = db.query(Razgovor).filter(Razgovor.id == sesija_id).first()
+    if not razgovor:
+        raise HTTPException(status_code=404, detail="Razgovor nije pronađen.")
+    advokat = db.query(Advokat).filter(Advokat.id == razgovor.advokat_id).first()
+    return {
+        "sesija_id": razgovor.id,
+        "naziv_kancelarije": _naziv(advokat) if advokat else "",
+        "zavrseno": bool(razgovor.zavrsen),
+        "poruke": servis.transkript(razgovor),
+    }
+
+
+@ruter.post("/poruka", response_model=PorukaIzlaz)
+def posalji_poruku(podaci: PorukaUlaz, request: Request, pozadina: BackgroundTasks, db: Session = Depends(get_db)):
+    ogranici(f"poruka:{ip_klijenta(request)}", settings.max_poruka_po_ip_u_minutu, 60)
+
+    brava = servis.brava_sesije(podaci.sesija_id)
+    if not brava.acquire(blocking=False):
+        raise HTTPException(status_code=429, detail="Prethodna poruka se još obrađuje.")
+    try:
+        razgovor = db.query(Razgovor).filter(Razgovor.id == podaci.sesija_id).first()
+        if not razgovor:
+            raise HTTPException(status_code=404, detail="Razgovor nije pronađen. Osvežite stranicu i počnite ponovo.")
+
+        advokat = db.query(Advokat).filter(Advokat.id == razgovor.advokat_id).first()
+        if not advokat or not moze_da_prima_prijeme(db, advokat):
+            raise HTTPException(status_code=403, detail=PORUKA_NE_PRIMA)
+
+        try:
+            rezultat = servis.obradi_poruku(db, razgovor, podaci.poruka.strip())
+        except servis.GreskaPrijema as g:
+            raise HTTPException(status_code=g.status, detail=g.poruka)
+    finally:
+        brava.release()
+
+    if rezultat.prijem_id:
+        pozadina.add_task(servis.obradi_analizu, rezultat.prijem_id)
 
     return PorukaIzlaz(
-        odgovor=odgovor,
-        sesija_id=podaci.sesija_id or _generisi_sesiju(),
-        istorija=nova_istorija,
-        zavrseno=zavrseno,
-        prijem_id=prijem_id
+        odgovor=rezultat.odgovor,
+        sesija_id=podaci.sesija_id,
+        zavrseno=rezultat.zavrseno,
+        prijem_id=rezultat.prijem_id
     )
 
-@ruter.get("/lista/{advokat_id}")
-def lista_prijema(advokat_id: int, db: Session = Depends(get_db)):
+
+# ── Rute advokata (zahtevaju prijavu) ──
+
+def _prijem_advokata(db: Session, prijem_id: int, advokat: Advokat) -> Prijem:
+    prijem = db.query(Prijem).filter(Prijem.id == prijem_id, Prijem.advokat_id == advokat.id).first()
+    if not prijem:
+        raise HTTPException(status_code=404, detail="Prijem nije pronađen")
+    return prijem
+
+
+@ruter.get("/lista")
+def lista_prijema(advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
     prijemi = db.query(Prijem).filter(
-        Prijem.advokat_id == advokat_id
+        Prijem.advokat_id == advokat.id
     ).order_by(Prijem.datum_prijema.desc()).all()
 
     return [
@@ -96,20 +156,23 @@ def lista_prijema(advokat_id: int, db: Session = Depends(get_db)):
             "oblast_prava": p.oblast_prava,
             "status": p.status,
             "procena_urgentnosti": p.procena_urgentnosti,
+            "analiza_status": p.analiza_status,
             "datum_prijema": p.datum_prijema.isoformat()
         }
         for p in prijemi
     ]
 
+
 @ruter.get("/detalji/{prijem_id}")
-def detalji_prijema(prijem_id: int, db: Session = Depends(get_db)):
-    prijem = db.query(Prijem).filter(Prijem.id == prijem_id).first()
-    if not prijem:
-        raise HTTPException(status_code=404, detail="Prijem nije pronađen")
+def detalji_prijema(prijem_id: int, advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
+    prijem = _prijem_advokata(db, prijem_id, advokat)
+    try:
+        razgovor = json.loads(prijem.razgovor_json or "[]")
+    except json.JSONDecodeError:
+        razgovor = []
 
     return {
         "id": prijem.id,
-        "advokat_id": prijem.advokat_id,
         "klijent_ime": prijem.klijent_ime,
         "klijent_email": prijem.klijent_email,
         "klijent_telefon": prijem.klijent_telefon,
@@ -120,73 +183,45 @@ def detalji_prijema(prijem_id: int, db: Session = Depends(get_db)):
         "ai_analiza": prijem.ai_analiza,
         "procena_urgentnosti": prijem.procena_urgentnosti,
         "preporuceni_koraci": prijem.preporuceni_koraci,
+        "analiza_status": prijem.analiza_status,
         "status": prijem.status,
-        "datum_prijema": prijem.datum_prijema.isoformat()
+        "datum_prijema": prijem.datum_prijema.isoformat(),
+        "razgovor": [
+            {"role": p.get("role"), "content": p.get("content")}
+            for p in razgovor if isinstance(p.get("content"), str)
+        ],
     }
 
+
 @ruter.patch("/status/{prijem_id}")
-def azuriraj_status(prijem_id: int, podaci: StatusAzuriranje, db: Session = Depends(get_db)):
-    dozvoljeni_statusi = ["novi", "na_pregledu", "zakazano", "zatvoreno"]
-    if podaci.status not in dozvoljeni_statusi:
-        raise HTTPException(status_code=400, detail=f"Dozvoljeni statusi: {dozvoljeni_statusi}")
+def azuriraj_status(prijem_id: int, podaci: StatusAzuriranje, advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
+    if podaci.status not in DOZVOLJENI_STATUSI:
+        raise HTTPException(status_code=400, detail=f"Dozvoljeni statusi: {', '.join(DOZVOLJENI_STATUSI)}")
 
-    prijem = db.query(Prijem).filter(Prijem.id == prijem_id).first()
-    if not prijem:
-        raise HTTPException(status_code=404, detail="Prijem nije pronađen")
-
+    prijem = _prijem_advokata(db, prijem_id, advokat)
     prijem.status = podaci.status
     db.commit()
     return {"poruka": "Status uspešno ažuriran", "status": podaci.status}
 
 
-def _generisi_sesiju() -> str:
-    import uuid
-    return str(uuid.uuid4())
+@ruter.delete("/{prijem_id}")
+def obrisi_prijem(prijem_id: int, advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
+    prijem = _prijem_advokata(db, prijem_id, advokat)
+    servis.obrisi_prijem(db, prijem)
+    return {"poruka": "Prijem je obrisan"}
 
-def _sacuvaj_prijem(db: Session, advokat_id: int, istorija_json: str) -> int:
-    try:
-        analiza = generisi_analizu(istorija_json)
-    except Exception:
-        analiza = {}
 
-    prijem = Prijem(
-        advokat_id=advokat_id,
-        klijent_ime=analiza.get("klijent_ime"),
-        klijent_email=analiza.get("klijent_email"),
-        klijent_telefon=analiza.get("klijent_telefon"),
-        oblast_prava=analiza.get("oblast_prava"),
-        opis_problema=analiza.get("opis_problema"),
-        detalji_slucaja=analiza.get("detalji_slucaja"),
-        dokumenti_napomena=analiza.get("dokumenti_napomena"),
-        ai_analiza=analiza.get("ai_analiza"),
-        procena_urgentnosti=analiza.get("procena_urgentnosti"),
-        preporuceni_koraci=analiza.get("preporuceni_koraci"),
-        razgovor_json=istorija_json,
-        status="novi"
-    )
-    db.add(prijem)
+@ruter.post("/analiza/{prijem_id}")
+def ponovi_analizu(prijem_id: int, pozadina: BackgroundTasks, advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
+    prijem = _prijem_advokata(db, prijem_id, advokat)
+    if prijem.analiza_status == "u_obradi":
+        raise HTTPException(status_code=409, detail="Analiza je već u toku.")
+    ogranici(f"analiza:{advokat.id}", 10, 3600)
+    prijem.analiza_status = "u_obradi"
     db.commit()
-    db.refresh(prijem)
-    try:
-        advokat = db.query(Advokat).filter(Advokat.id == advokat_id).first()
-        if advokat:
-            posalji_izvestaj_advokatu(
-                advokat_email=advokat.email,
-                advokat_ime=advokat.ime,
-                klijent_ime=analiza.get("klijent_ime", "Nepoznat"),
-                oblast_prava=analiza.get("oblast_prava", "Nije određena"),
-                opis_problema=analiza.get("opis_problema", ""),
-                ai_analiza=analiza.get("ai_analiza", ""),
-                procena_urgentnosti=analiza.get("procena_urgentnosti", "srednja"),
-                preporuceni_koraci=analiza.get("preporuceni_koraci", ""),
-                prijem_id=prijem.id
-            )
-    except Exception as e:
-        print(f"Email nije poslat: {e}")
-    return prijem.id
+    pozadina.add_task(servis.obradi_analizu, prijem.id)
+    return {"poruka": "Analiza je pokrenuta", "analiza_status": "u_obradi"}
 
-import re
-import unicodedata
 
 def _ocisti_ime_fajla(tekst: str) -> str:
     tekst = unicodedata.normalize('NFKD', tekst)
@@ -196,12 +231,8 @@ def _ocisti_ime_fajla(tekst: str) -> str:
 
 
 @ruter.get("/pdf/{prijem_id}")
-def preuzmi_pdf(prijem_id: int, db: Session = Depends(get_db)):
-    prijem = db.query(Prijem).filter(Prijem.id == prijem_id).first()
-    if not prijem:
-        raise HTTPException(status_code=404, detail="Prijem nije pronađen")
-
-    advokat = db.query(Advokat).filter(Advokat.id == prijem.advokat_id).first()
+def preuzmi_pdf(prijem_id: int, advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
+    prijem = _prijem_advokata(db, prijem_id, advokat)
 
     pdf = generisi_pdf(prijem, advokat)
 
@@ -210,5 +241,5 @@ def preuzmi_pdf(prijem_id: int, db: Session = Depends(get_db)):
     return Response(
         content=pdf,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={ime_fajla}"}
+        headers={"Content-Disposition": f'attachment; filename="{ime_fajla}"'}
     )
