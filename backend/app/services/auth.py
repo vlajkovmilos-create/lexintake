@@ -65,6 +65,12 @@ def trenutni_advokat(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Advokat nije pronađen")
     return advokat
 
+def vlasnik_kancelarije(db: Session, advokat: Advokat) -> Advokat:
+    """Vraća nalog vlasnika kancelarije (za vlasnika i advokata bez tima to je on sam)."""
+    if advokat.vlasnik_id is None:
+        return advokat
+    return db.query(Advokat).filter(Advokat.id == advokat.vlasnik_id).first() or advokat
+
 def registruj_advokata(db: Session, ime: str, email: str, lozinka: str, naziv_kancelarije: str = None, telefon: str = None) -> Advokat:
     email = email.strip().lower()
     if nadji_po_emailu(db, email):

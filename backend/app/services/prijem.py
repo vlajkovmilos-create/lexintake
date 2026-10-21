@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
@@ -98,7 +99,10 @@ def zapocni_razgovor(db: Session, advokat: Advokat) -> Razgovor:
         advokat_id=advokat.id,
         poruke_json="[]",
         uvodna_poruka=uvodna,
-        sistem_poruka=sistem_poruka(advokat.naziv_kancelarije or advokat.ime, uvodna),
+        sistem_poruka=sistem_poruka(
+            advokat.naziv_kancelarije or advokat.ime, uvodna,
+            engleski=advokat.plan in ("probni", "pro", "kancelarija")
+        ),
         broj_poruka_klijenta=0,
         datum_saglasnosti=datetime.utcnow(),
     )
@@ -217,8 +221,13 @@ def obradi_analizu(prijem_id: int):
         if prijem.izvestaj_poslat:
             return
 
-        advokat = db.query(Advokat).filter(Advokat.id == prijem.advokat_id).first()
-        if advokat:
+        # Mejl dobijaju svi advokati kancelarije koji nisu isključili obaveštenja
+        primaoci = db.query(Advokat).filter(
+            or_(Advokat.id == prijem.advokat_id, Advokat.vlasnik_id == prijem.advokat_id),
+            or_(Advokat.obavestenja == True, Advokat.obavestenja == None)  # noqa: E711,E712
+        ).all()
+        poslat = False
+        for advokat in primaoci:
             poslat = posalji_izvestaj_advokatu(
                 advokat_email=advokat.email,
                 advokat_ime=advokat.ime,
@@ -230,10 +239,10 @@ def obradi_analizu(prijem_id: int):
                 procena_urgentnosti=prijem.procena_urgentnosti or "srednja",
                 preporuceni_koraci=prijem.preporuceni_koraci or "",
                 prijem_id=prijem.id
-            )
-            if poslat:
-                prijem.izvestaj_poslat = True
-                db.commit()
+            ) or poslat
+        if poslat:
+            prijem.izvestaj_poslat = True
+            db.commit()
     except Exception:
         log.exception("Neočekivana greška pri obradi prijema #%s", prijem_id)
     finally:

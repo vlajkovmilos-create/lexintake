@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Advokat
-from ..services.auth import registruj_advokata, prijavi_advokata, kreiraj_token, trenutni_advokat
-from ..services.placanje import osvezi_status_pretplate, LIMIT_PRIJEMA_MESECNO
+from ..services.auth import registruj_advokata, prijavi_advokata, kreiraj_token, trenutni_advokat, vlasnik_kancelarije
+from ..services.placanje import osvezi_status_pretplate, funkcije_plana, LIMIT_PRIJEMA_MESECNO
 from ..services.prijem import broj_prijema_ovog_meseca
 from ..utils.ogranicenje import ogranici, ip_klijenta
 
@@ -56,6 +56,7 @@ class AzuriranjeUlaz(BaseModel):
     ime: Optional[str] = Field(default=None, min_length=2, max_length=100)
     telefon: Optional[str] = Field(default=None, max_length=20)
     naziv_kancelarije: Optional[str] = Field(default=None, max_length=200)
+    obavestenja: Optional[bool] = None
 
     _ocisti_polja = field_validator("telefon", "naziv_kancelarije", mode="before")(_ocisti)
 
@@ -66,20 +67,30 @@ def _token_za(advokat: Advokat) -> TokenIzlaz:
 
 
 def _profil(db: Session, advokat: Advokat) -> dict:
-    status_pretplate = osvezi_status_pretplate(db, advokat)
+    """Podaci advokata; kancelarijski podaci (pretplata, link, brending) dolaze od vlasnika."""
+    vlasnik = vlasnik_kancelarije(db, advokat)
+    status_pretplate = osvezi_status_pretplate(db, vlasnik)
     return {
         "id": advokat.id,
         "ime": advokat.ime,
         "email": advokat.email,
-        "naziv_kancelarije": advokat.naziv_kancelarije,
         "telefon": advokat.telefon,
-        "javni_kod": advokat.javni_kod,
-        "plan": advokat.plan,
+        "obavestenja": advokat.obavestenja is not False,
+        "je_vlasnik": advokat.je_vlasnik,
+        "vlasnik_ime": vlasnik.ime,
+        "naziv_kancelarije": vlasnik.naziv_kancelarije,
+        "javni_kod": vlasnik.javni_kod,
+        "plan": vlasnik.plan,
         "status_pretplate": status_pretplate,
-        "datum_isteka_probe": advokat.datum_isteka_probe.isoformat() if advokat.datum_isteka_probe else None,
-        "datum_isteka_pretplate": advokat.datum_isteka_pretplate.isoformat() if advokat.datum_isteka_pretplate else None,
-        "prijema_ovog_meseca": broj_prijema_ovog_meseca(db, advokat.id),
-        "limit_prijema_mesecno": LIMIT_PRIJEMA_MESECNO.get(advokat.plan),
+        "datum_isteka_probe": vlasnik.datum_isteka_probe.isoformat() if vlasnik.datum_isteka_probe else None,
+        "datum_isteka_pretplate": vlasnik.datum_isteka_pretplate.isoformat() if vlasnik.datum_isteka_pretplate else None,
+        "prijema_ovog_meseca": broj_prijema_ovog_meseca(db, vlasnik.id),
+        "limit_prijema_mesecno": LIMIT_PRIJEMA_MESECNO.get(vlasnik.plan),
+        "funkcije": funkcije_plana(vlasnik),
+        "logo": vlasnik.logo,
+        "boja": vlasnik.boja,
+        "api_kljuc_prefiks": vlasnik.api_kljuc_prefiks,
+        "api_kljuc_datum": vlasnik.api_kljuc_datum.isoformat() if vlasnik.api_kljuc_datum else None,
     }
 
 
@@ -124,9 +135,11 @@ def ko_sam_ja(advokat: Advokat = Depends(trenutni_advokat), db: Session = Depend
 
 @ruter.patch("/azuriraj")
 def azuriraj_advokata(podaci: AzuriranjeUlaz, advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
-    # Menjaju se samo polja koja su poslata
+    # Menjaju se samo polja koja su poslata; naziv kancelarije menja samo vlasnik
     for polje, vrednost in podaci.model_dump(exclude_unset=True).items():
-        if polje == "ime" and not vrednost:
+        if polje in ("ime", "obavestenja") and vrednost is None:
+            continue
+        if polje == "naziv_kancelarije" and not advokat.je_vlasnik:
             continue
         setattr(advokat, polje, vrednost)
     db.commit()

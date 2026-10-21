@@ -351,6 +351,80 @@
   @media (max-width: 640px) {
     .planovi { grid-template-columns: 1fr; }
   }
+  .obavestenja { display: flex; gap: 10px; align-items: center; font-size: 14px; color: #3d3830; cursor: pointer; }
+  .obavestenja input { width: 16px; height: 16px; accent-color: #0f2744; }
+  .lista-tima { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .clan {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #fafaf8;
+    border: 1px solid rgba(15,39,68,0.08);
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  .clan-email { font-size: 12px; color: #8a8070; }
+  .clan-oznaka { font-size: 11px; color: #8a8070; font-style: italic; }
+  .dugme-tekst { background: none; border: none; color: #b91c1c; font-size: 12px; cursor: pointer; font-family: inherit; }
+  .red-forme { display: flex; gap: 8px; }
+  .red-forme .polje-unos { flex: 1; }
+  .dugme-mali {
+    background: #0f2744;
+    color: #f5f0e8;
+    border: none;
+    border-radius: 8px;
+    padding: 0 16px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .dugme-mali.sekundarno { background: none; color: #0f2744; border: 1px solid rgba(15,39,68,0.2); }
+  .dugme-mali:disabled { opacity: 0.5; cursor: not-allowed; }
+  .poruka-sekcije { font-size: 13px; margin-top: 10px; display: none; }
+  .poruka-sekcije.vidljivo { display: block; }
+  .poruka-sekcije.uspeh { color: #166534; }
+  .poruka-sekcije.greska { color: #b91c1c; }
+  .zakljucano { font-size: 13px; color: #8a8070; line-height: 1.6; }
+  .brending-red { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .logo-pregled {
+    width: 160px;
+    height: 64px;
+    border: 1px dashed rgba(15,39,68,0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #8a8070;
+    background: #fafaf8;
+    overflow: hidden;
+  }
+  .logo-pregled img { max-width: 100%; max-height: 100%; }
+  .boja-polje { width: 48px; height: 36px; border: 1px solid rgba(15,39,68,0.15); border-radius: 6px; padding: 2px; background: #fff; cursor: pointer; }
+  .api-kljuc {
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+    background: #0f2744;
+    color: #f5f0e8;
+    padding: 12px 14px;
+    border-radius: 8px;
+    word-break: break-all;
+    margin: 10px 0;
+  }
+  pre.primer {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    background: #fafaf8;
+    border: 1px solid rgba(15,39,68,0.08);
+    border-radius: 8px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    margin-top: 12px;
+    color: #3d3830;
+  }
 </style>
 </head>
 <body>
@@ -389,12 +463,17 @@
       <div class="polje-grupa">
         <label class="polje-oznaka">Naziv kancelarije</label>
         <input class="polje-unos" type="text" id="kancelarija" placeholder="Advokatska kancelarija Marković">
+        <div class="polje-napomena skriveno-clan" id="napomenaKancelarija" style="display:none">Naziv kancelarije menja vlasnik naloga</div>
       </div>
       <div class="polje-grupa">
         <label class="polje-oznaka">Email adresa</label>
         <input class="polje-unos" type="email" id="email" disabled>
         <div class="polje-napomena">Email adresa se ne može menjati</div>
       </div>
+      <label class="obavestenja">
+        <input type="checkbox" id="obavestenja">
+        Pošalji mi mejl kad stigne novi prijem
+      </label>
     </div>
     <div class="kartica-podnozje">
       <div>
@@ -417,6 +496,72 @@
     <div class="link-red">
       <input class="link-polje" type="text" id="linkUpitnik" readonly>
       <button class="dugme-kopiraj" id="dugmeKopiraj" onclick="kopirajLink()">Kopiraj link</button>
+    </div>
+  </div>
+
+  <div class="kartica" id="tim">
+    <div class="kartica-zaglavlje">
+      <div class="kartica-naslov">Tim kancelarije</div>
+      <div class="kartica-opis">Svi članovi tima vide iste prijeme i mogu da ih preuzmu</div>
+    </div>
+    <div class="kartica-telo">
+      <div class="lista-tima" id="listaTima"></div>
+      <div id="pozivForma" style="display:none">
+        <label class="polje-oznaka">Pozovite kolegu</label>
+        <div class="red-forme">
+          <input class="polje-unos" type="email" id="pozivEmail" placeholder="kolega@kancelarija.rs">
+          <button class="dugme-mali" id="dugmePozovi" onclick="posaljiPoziv()">Pošalji poziv</button>
+        </div>
+      </div>
+      <div class="zakljucano" id="timZakljucano" style="display:none"></div>
+      <div class="poruka-sekcije" id="porukaTim"></div>
+    </div>
+  </div>
+
+  <div class="kartica" id="brending" style="display:none">
+    <div class="kartica-zaglavlje">
+      <div class="kartica-naslov">Brending upitnika</div>
+      <div class="kartica-opis">Vaš logo i boja u upitniku za klijente i u PDF izveštaju, bez LexIntake oznake</div>
+    </div>
+    <div class="kartica-telo">
+      <div id="brendingSadrzaj">
+        <div class="brending-red">
+          <div class="logo-pregled" id="logoPregled">Bez logoa</div>
+          <div>
+            <input type="file" id="logoFajl" accept="image/png,image/jpeg,image/webp" onchange="izaberiLogo(this)" style="display:none">
+            <button class="dugme-mali sekundarno" onclick="document.getElementById('logoFajl').click()" style="height:36px">Izaberi logo</button>
+            <button class="dugme-tekst" onclick="ukloniLogo()">Ukloni</button>
+            <div class="polje-napomena">PNG, JPEG ili WebP, najviše 200 KB</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input type="color" class="boja-polje" id="bojaBrenda" value="#0f2744">
+            <span class="polje-napomena" style="margin:0">Glavna boja</span>
+          </div>
+        </div>
+        <button class="dugme-mali" style="height:38px" onclick="sacuvajBrending()">Sačuvaj brending</button>
+      </div>
+      <div class="zakljucano" id="brendingZakljucano" style="display:none"></div>
+      <div class="poruka-sekcije" id="porukaBrending"></div>
+    </div>
+  </div>
+
+  <div class="kartica" id="api" style="display:none">
+    <div class="kartica-zaglavlje">
+      <div class="kartica-naslov">API pristup</div>
+      <div class="kartica-opis">Povežite prijeme sa vašim CRM-om ili drugim softverom</div>
+    </div>
+    <div class="kartica-telo">
+      <div id="apiSadrzaj">
+        <div class="zakljucano" id="apiStatus"></div>
+        <div class="api-kljuc" id="apiNoviKljuc" style="display:none"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="dugme-mali" style="height:36px" id="dugmeApiKljuc" onclick="napraviApiKljuc()">Napravi API ključ</button>
+          <button class="dugme-mali sekundarno" style="height:36px;display:none" id="dugmeApiOpozovi" onclick="opozoviApiKljuc()">Opozovi ključ</button>
+        </div>
+        <pre class="primer" id="apiPrimer"></pre>
+      </div>
+      <div class="zakljucano" id="apiZakljucano" style="display:none"></div>
+      <div class="poruka-sekcije" id="porukaApi"></div>
     </div>
   </div>
 
@@ -473,6 +618,206 @@
     return `${plan.checkout}?${parametri.toString()}`;
   }
 
+  let profil = null;
+  let imenaTima = {};
+  let noviLogo;  // undefined = bez izmene, null = ukloni, string = novi data URL
+
+  function porukaSekcije(id, tekst, uspeh = true) {
+    const el = document.getElementById(id);
+    el.textContent = tekst;
+    el.className = 'poruka-sekcije vidljivo ' + (uspeh ? 'uspeh' : 'greska');
+    if (uspeh) setTimeout(() => el.classList.remove('vidljivo'), 4000);
+  }
+
+  // ── Tim ──
+  async function ucitajTim() {
+    try {
+      const odg = await apiAdvokat('/kancelarija/tim');
+      if (!odg.ok) return;
+      const tim = await odg.json();
+      imenaTima = Object.fromEntries(tim.clanovi.map(c => [c.id, c.ime]));
+      const vlasnik = profil.je_vlasnik;
+      const redovi = tim.clanovi.map(c => `
+        <div class="clan">
+          <div><div>${esc(c.ime)}${c.id === profil.id ? ' (vi)' : ''}</div><div class="clan-email">${esc(c.email)}</div></div>
+          ${c.je_vlasnik ? '<span class="clan-oznaka">vlasnik</span>'
+            : (vlasnik ? `<button class="dugme-tekst" onclick="ukloniClana(${Number(c.id)})">Ukloni</button>` : '')}
+        </div>`).concat(tim.pozivnice.map(p => `
+        <div class="clan">
+          <div><div>${esc(p.email)}</div><div class="clan-email">Pozivnica poslata · važi do ${esc(datum(p.datum_isteka))}</div></div>
+          <button class="dugme-tekst" onclick="otkaziPoziv(${Number(p.id)})">Otkaži</button>
+        </div>`));
+      document.getElementById('listaTima').innerHTML = redovi.join('');
+
+      const max = profil.funkcije.max_advokata;
+      const forma = document.getElementById('pozivForma');
+      const zakljucano = document.getElementById('timZakljucano');
+      forma.style.display = 'none';
+      zakljucano.style.display = 'none';
+      if (!vlasnik) {
+        zakljucano.textContent = `Tim kancelarije vodi ${profil.vlasnik_ime}.`;
+        zakljucano.style.display = 'block';
+      } else if (max === 1) {
+        zakljucano.innerHTML = 'Vaš plan je za jednog advokata. <a href="#pretplata">Pro plan</a> uključuje do 5 advokata.';
+        zakljucano.style.display = 'block';
+      } else {
+        forma.style.display = 'block';
+        if (max) {
+          zakljucano.textContent = `Plan uključuje do ${max} advokata (${tim.clanovi.length + tim.pozivnice.length} iskorišćeno).`;
+          zakljucano.style.display = 'block';
+        }
+      }
+    } catch (e) {}
+  }
+
+  async function posaljiPoziv() {
+    const email = document.getElementById('pozivEmail').value.trim();
+    if (!email) return;
+    const dugme = document.getElementById('dugmePozovi');
+    dugme.disabled = true;
+    try {
+      const odg = await apiAdvokat('/kancelarija/pozivnica', { method: 'POST', body: JSON.stringify({ email }) });
+      const podaci = await odg.json();
+      if (!odg.ok) return porukaSekcije('porukaTim', porukaGreske(podaci, 'Poziv nije poslat.'), false);
+      document.getElementById('pozivEmail').value = '';
+      porukaSekcije('porukaTim', podaci.poruka);
+      ucitajTim();
+    } catch (e) {
+      porukaSekcije('porukaTim', 'Poziv nije poslat.', false);
+    } finally {
+      dugme.disabled = false;
+    }
+  }
+
+  async function otkaziPoziv(id) {
+    const odg = await apiAdvokat(`/kancelarija/pozivnica/${id}`, { method: 'DELETE' });
+    if (odg.ok) ucitajTim();
+  }
+
+  async function ukloniClana(id) {
+    if (!confirm(`Ukloniti ${imenaTima[id]} iz tima? Nalog će biti obrisan, a prijemi ostaju kancelariji.`)) return;
+    const odg = await apiAdvokat(`/kancelarija/clan/${id}`, { method: 'DELETE' });
+    if (odg.ok) ucitajTim();
+    else porukaSekcije('porukaTim', porukaGreske(await odg.json(), 'Član nije uklonjen.'), false);
+  }
+
+  // ── Brending ──
+  function prikaziLogo(dataUrl) {
+    const el = document.getElementById('logoPregled');
+    el.innerHTML = '';
+    if (!dataUrl) { el.textContent = 'Bez logoa'; return; }
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.alt = 'Logo';
+    el.appendChild(img);
+  }
+
+  function prikaziBrending() {
+    const kartica = document.getElementById('brending');
+    if (!profil.je_vlasnik) { kartica.style.display = 'none'; return; }
+    kartica.style.display = 'block';
+    const dozvoljeno = profil.funkcije.white_label;
+    document.getElementById('brendingSadrzaj').style.display = dozvoljeno ? 'block' : 'none';
+    const zakljucano = document.getElementById('brendingZakljucano');
+    zakljucano.style.display = dozvoljeno ? 'none' : 'block';
+    zakljucano.innerHTML = 'Sopstveni logo i boja su deo <a href="#pretplata">plana Kancelarija</a>.';
+    prikaziLogo(profil.logo);
+    document.getElementById('bojaBrenda').value = profil.boja || '#0f2744';
+  }
+
+  function izaberiLogo(input) {
+    const fajl = input.files[0];
+    input.value = '';
+    if (!fajl) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(fajl.type)) {
+      return porukaSekcije('porukaBrending', 'Logo mora biti PNG, JPEG ili WebP.', false);
+    }
+    if (fajl.size > 200 * 1024) {
+      return porukaSekcije('porukaBrending', 'Logo je prevelik (najviše 200 KB).', false);
+    }
+    const citac = new FileReader();
+    citac.onload = () => { noviLogo = citac.result; prikaziLogo(noviLogo); };
+    citac.readAsDataURL(fajl);
+  }
+
+  function ukloniLogo() {
+    noviLogo = null;
+    prikaziLogo(null);
+  }
+
+  async function sacuvajBrending() {
+    const logo = noviLogo === undefined ? profil.logo : noviLogo;
+    try {
+      const odg = await apiAdvokat('/kancelarija/brending', {
+        method: 'PUT',
+        body: JSON.stringify({ logo, boja: document.getElementById('bojaBrenda').value })
+      });
+      const podaci = await odg.json();
+      if (!odg.ok) return porukaSekcije('porukaBrending', porukaGreske(podaci, 'Brending nije sačuvan.'), false);
+      profil.logo = podaci.logo;
+      profil.boja = podaci.boja;
+      noviLogo = undefined;
+      porukaSekcije('porukaBrending', 'Brending je sačuvan. Otvorite link upitnika da vidite kako izgleda.');
+    } catch (e) {
+      porukaSekcije('porukaBrending', 'Brending nije sačuvan.', false);
+    }
+  }
+
+  // ── API ──
+  function prikaziApi() {
+    const kartica = document.getElementById('api');
+    if (!profil.je_vlasnik) { kartica.style.display = 'none'; return; }
+    kartica.style.display = 'block';
+    const dozvoljeno = profil.funkcije.api;
+    document.getElementById('apiSadrzaj').style.display = dozvoljeno ? 'block' : 'none';
+    const zakljucano = document.getElementById('apiZakljucano');
+    zakljucano.style.display = dozvoljeno ? 'none' : 'block';
+    zakljucano.innerHTML = 'API pristup je deo <a href="#pretplata">plana Kancelarija</a>.';
+
+    const imaKljuc = !!profil.api_kljuc_prefiks;
+    document.getElementById('apiStatus').textContent = imaKljuc
+      ? `Aktivan ključ: ${profil.api_kljuc_prefiks}… (napravljen ${datum(profil.api_kljuc_datum)})`
+      : 'Još nemate API ključ.';
+    document.getElementById('dugmeApiKljuc').textContent = imaKljuc ? 'Napravi novi ključ' : 'Napravi API ključ';
+    document.getElementById('dugmeApiOpozovi').style.display = imaKljuc ? 'inline-block' : 'none';
+    document.getElementById('apiPrimer').textContent =
+`# Lista prijema (najnoviji prvi; opciono ?od=2026-01-01T00:00:00Z&limit=50)
+curl -H "Authorization: Bearer VAS_API_KLJUC" \
+  ${API_URL}/api/v1/prijemi
+
+# Jedan prijem
+curl -H "Authorization: Bearer VAS_API_KLJUC" \
+  ${API_URL}/api/v1/prijemi/123`;
+  }
+
+  async function napraviApiKljuc() {
+    if (profil.api_kljuc_prefiks && !confirm('Novi ključ odmah zamenjuje postojeći. Nastaviti?')) return;
+    try {
+      const odg = await apiAdvokat('/kancelarija/api-kljuc', { method: 'POST' });
+      const podaci = await odg.json();
+      if (!odg.ok) return porukaSekcije('porukaApi', porukaGreske(podaci, 'Ključ nije napravljen.'), false);
+      const el = document.getElementById('apiNoviKljuc');
+      el.textContent = podaci.api_kljuc;
+      el.style.display = 'block';
+      porukaSekcije('porukaApi', 'Kopirajte ključ sada - iz bezbednosnih razloga neće biti ponovo prikazan.');
+      profil.api_kljuc_prefiks = podaci.api_kljuc.slice(0, 10);
+      profil.api_kljuc_datum = new Date().toISOString().slice(0, 19);
+      prikaziApi();
+    } catch (e) {
+      porukaSekcije('porukaApi', 'Ključ nije napravljen.', false);
+    }
+  }
+
+  async function opozoviApiKljuc() {
+    if (!confirm('Opozvati API ključ? Integracije koje ga koriste prestaće da rade.')) return;
+    const odg = await apiAdvokat('/kancelarija/api-kljuc', { method: 'DELETE' });
+    if (!odg.ok) return;
+    profil.api_kljuc_prefiks = null;
+    document.getElementById('apiNoviKljuc').style.display = 'none';
+    prikaziApi();
+    porukaSekcije('porukaApi', 'API ključ je opozvan.');
+  }
+
   function prikaziPretplatu(ja) {
     let tekst = `Status: <strong>${esc(NAZIVI_STATUSA[ja.status_pretplate] || ja.status_pretplate)}</strong>`;
     if (ja.status_pretplate === 'probni_period') tekst += ` · ističe ${esc(datum(ja.datum_isteka_probe))}`;
@@ -480,6 +825,12 @@
     if (ja.status_pretplate === 'aktivna') tekst += ` · plan ${esc(ja.plan)}`;
     if (ja.limit_prijema_mesecno) tekst += `<br>Ovog meseca: ${ja.prijema_ovog_meseca} / ${ja.limit_prijema_mesecno} prijema`;
     document.getElementById('planStatus').innerHTML = tekst;
+
+    if (!ja.je_vlasnik) {
+      document.getElementById('planovi').innerHTML =
+        `<div class="zakljucano">Pretplatom upravlja ${esc(ja.vlasnik_ime)}, vlasnik naloga kancelarije.</div>`;
+      return;
+    }
 
     const imaPretplatu = ['aktivna', 'otkazana'].includes(ja.status_pretplate);
     document.getElementById('planovi').innerHTML = PLANOVI.map(plan => {
@@ -501,16 +852,23 @@
       if (!odg.ok) throw new Error();
 
       const podaci = await odg.json();
+      profil = podaci;
       document.getElementById('ime').value = podaci.ime || '';
       document.getElementById('telefon').value = podaci.telefon || '';
       document.getElementById('kancelarija').value = podaci.naziv_kancelarije || '';
+      document.getElementById('kancelarija').disabled = !podaci.je_vlasnik;
+      document.getElementById('napomenaKancelarija').style.display = podaci.je_vlasnik ? 'none' : 'block';
       document.getElementById('email').value = podaci.email || '';
+      document.getElementById('obavestenja').checked = podaci.obavestenja;
 
       const putanja = location.pathname.replace(/podesavanja\.html$/, 'upitnik.html');
       document.getElementById('linkUpitnik').value = `${location.origin}${putanja}?k=${encodeURIComponent(podaci.javni_kod)}`;
 
       prikaziPretplatu(podaci);
-      if (location.hash === '#pretplata') document.getElementById('pretplata').scrollIntoView();
+      prikaziBrending();
+      prikaziApi();
+      await ucitajTim();
+      if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
     } catch (e) {
       document.getElementById('greskaPoruka').textContent = 'Greška pri učitavanju podataka.';
       document.getElementById('greskaPoruka').classList.add('vidljivo');
@@ -541,8 +899,9 @@
     const telo = {
       ime,
       telefon: document.getElementById('telefon').value.trim() || null,
-      naziv_kancelarije: document.getElementById('kancelarija').value.trim() || null
+      obavestenja: document.getElementById('obavestenja').checked
     };
+    if (profil && profil.je_vlasnik) telo.naziv_kancelarije = document.getElementById('kancelarija').value.trim() || null;
 
     try {
       const odg = await apiAdvokat('/auth/azuriraj', {

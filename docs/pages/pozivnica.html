@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poziv u tim — LexIntake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f0e8;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  .kartica {
+    background: #ffffff;
+    border: 1px solid rgba(15,39,68,0.12);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    padding: 36px 32px;
+    box-shadow: 0 4px 24px rgba(15,39,68,0.08);
+  }
+  .logo { font-family: 'Playfair Display', serif; color: #0f2744; font-size: 18px; text-decoration: none; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 500; color: #0f2744; font-size: 24px; margin: 20px 0 8px; }
+  .opis { font-size: 14px; color: #3d3830; line-height: 1.6; margin-bottom: 24px; }
+  .polje-grupa { margin-bottom: 16px; }
+  label { display: block; font-size: 12px; font-weight: 500; color: #3d3830; margin-bottom: 6px; }
+  input {
+    width: 100%;
+    border: 1px solid rgba(15,39,68,0.15);
+    border-radius: 8px;
+    padding: 10px 13px;
+    font-size: 14px;
+    font-family: inherit;
+    background: #fafaf8;
+    outline: none;
+  }
+  input:focus { border-color: #0f2744; }
+  input:disabled { color: #8a8070; }
+  button {
+    width: 100%;
+    background: #0f2744;
+    color: #f5f0e8;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  button:disabled { background: #8a8070; cursor: not-allowed; }
+  .greska { display: none; font-size: 13px; color: #b91c1c; background: #fee2e2; border-radius: 8px; padding: 10px 12px; margin-bottom: 16px; }
+  .greska.vidljivo { display: block; }
+  .skriveno { display: none; }
+  .napomena { font-size: 12px; color: #8a8070; margin-top: 16px; line-height: 1.5; }
+  .napomena a { color: #0f2744; }
+</style>
+</head>
+<body>
+<div class="kartica">
+  <a href="../index.html" class="logo">LexIntake</a>
+  <h1>Poziv u tim</h1>
+  <p class="opis" id="opis">Učitavanje pozivnice...</p>
+
+  <div class="greska" id="greska"></div>
+
+  <div id="forma" class="skriveno">
+    <div class="polje-grupa">
+      <label for="email">Email adresa</label>
+      <input type="email" id="email" disabled>
+    </div>
+    <div class="polje-grupa">
+      <label for="ime">Ime i prezime</label>
+      <input type="text" id="ime" placeholder="Nikola Marković" maxlength="100">
+    </div>
+    <div class="polje-grupa">
+      <label for="lozinka">Lozinka</label>
+      <input type="password" id="lozinka" placeholder="Minimum 8 karaktera" maxlength="72">
+    </div>
+    <button id="dugme" onclick="prihvati()">Pridružite se kancelariji</button>
+    <p class="napomena">Kreiranjem naloga prihvatate <a href="uslovi-koriscenja.html" target="_blank">Uslove korišćenja</a> i
+      <a href="politika-privatnosti.html" target="_blank">Politiku privatnosti</a>.</p>
+  </div>
+</div>
+
+<script src="../js/zajednicko.js"></script>
+<script>
+  const TOKEN = new URLSearchParams(location.search).get('t') || '';
+
+  function prikaziGresku(poruka) {
+    const g = document.getElementById('greska');
+    g.textContent = poruka;
+    g.classList.add('vidljivo');
+  }
+
+  async function ucitaj() {
+    if (!TOKEN) {
+      document.getElementById('opis').textContent = '';
+      prikaziGresku('Link pozivnice nije ispravan.');
+      return;
+    }
+    try {
+      const odg = await fetch(`${API_URL}/kancelarija/pozivnica/${encodeURIComponent(TOKEN)}`);
+      const podaci = await odg.json();
+      if (!odg.ok) {
+        document.getElementById('opis').textContent = '';
+        prikaziGresku(porukaGreske(podaci, 'Pozivnica nije ispravna ili je istekla.'));
+        return;
+      }
+      document.getElementById('opis').textContent =
+        `Pozvani ste da se pridružite kancelariji „${podaci.naziv_kancelarije}". Napravite nalog da biste videli prijeme klijenata.`;
+      document.getElementById('email').value = podaci.email;
+      document.getElementById('forma').classList.remove('skriveno');
+      document.getElementById('ime').focus();
+    } catch (e) {
+      prikaziGresku('Server trenutno nije dostupan. Pokušajte ponovo za minut.');
+    }
+  }
+
+  async function prihvati() {
+    document.getElementById('greska').classList.remove('vidljivo');
+    const ime = document.getElementById('ime').value.trim();
+    const lozinka = document.getElementById('lozinka').value;
+    if (ime.length < 2) return prikaziGresku('Unesite ime i prezime.');
+    if (lozinka.length < 8) return prikaziGresku('Lozinka mora imati najmanje 8 karaktera.');
+
+    const dugme = document.getElementById('dugme');
+    dugme.disabled = true;
+    try {
+      const odg = await fetch(`${API_URL}/kancelarija/pozivnica/prihvati`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: TOKEN, ime, lozinka })
+      });
+      const rezultat = await odg.json();
+      if (!odg.ok) {
+        prikaziGresku(porukaGreske(rezultat, 'Pozivnicu nije moguće prihvatiti.'));
+        dugme.disabled = false;
+        return;
+      }
+      sacuvajSesiju(rezultat);
+      window.location.href = 'tabla.html';
+    } catch (e) {
+      prikaziGresku('Nije moguće povezati se sa serverom.');
+      dugme.disabled = false;
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !document.getElementById('forma').classList.contains('skriveno')) prihvati();
+  });
+
+  ucitaj();
+</script>
+</body>
+</html>

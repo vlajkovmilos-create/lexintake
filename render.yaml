@@ -11,7 +11,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: FROM_EMAIL
-        sync: false
+        value: LexIntake <obavestenja@lex.vlajkov.rs>
       - key: SECRET_KEY
         sync: false
       - key: DATABASE_URL

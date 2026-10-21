@@ -192,3 +192,59 @@ def posalji_izvestaj_advokatu(
     except Exception:
         log.exception("Greška pri slanju emaila za prijem #%s", prijem_id)
         return False
+
+
+def posalji_pozivnicu(email: str, naziv_kancelarije: str, ime_vlasnika: str, link: str) -> bool:
+    html_sadrzaj = f"""
+    <!DOCTYPE html>
+    <html lang="sr">
+    <head><meta charset="UTF-8"></head>
+    <body style="margin:0;padding:0;background:#f5f0e8;font-family:Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f0e8;padding:40px 20px;">
+            <tr><td align="center">
+                <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e0d8cc;">
+                    <tr>
+                        <td style="background:#0f2744;padding:24px 32px;">
+                            <span style="font-family:Georgia,serif;font-size:20px;color:#f5f0e8;">LexIntake</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:32px;">
+                            <p style="font-size:16px;color:#1a1610;margin:0 0 12px;">Poziv u tim kancelarije</p>
+                            <p style="font-size:14px;color:#3d3830;line-height:1.7;margin:0 0 24px;">
+                                {_bezbedno(ime_vlasnika)} vas poziva da se pridružite kancelariji
+                                <strong>{_bezbedno(naziv_kancelarije)}</strong> na LexIntake-u, gde ćete videti prijeme klijenata
+                                i AI izveštaje pre konsultacija. Poziv važi 7 dana.
+                            </p>
+                            <a href="{html.escape(link)}" style="display:inline-block;background:#0f2744;color:#f5f0e8;text-decoration:none;padding:12px 24px;border-radius:6px;font-size:14px;">
+                                Prihvati poziv →
+                            </a>
+                            <p style="font-size:12px;color:#8a8070;line-height:1.6;margin:24px 0 0;">
+                                Ako ne očekujete ovaj poziv, slobodno ignorišite ovu poruku.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td></tr>
+        </table>
+    </body>
+    </html>
+    """
+
+    tekst = (
+        f"{ime_vlasnika} vas poziva da se pridružite kancelariji {naziv_kancelarije} na LexIntake-u.\n\n"
+        f"Prihvatite poziv (važi 7 dana): {link}\n"
+    )
+
+    try:
+        resend.Emails.send({
+            "from": settings.from_email,
+            "to": email,
+            "subject": _jedan_red(f"Poziv u tim: {naziv_kancelarije}")[:200],
+            "html": html_sadrzaj,
+            "text": tekst,
+        })
+        return True
+    except Exception:
+        log.exception("Greška pri slanju pozivnice")
+        return False

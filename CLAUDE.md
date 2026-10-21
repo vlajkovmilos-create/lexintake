@@ -34,7 +34,8 @@ Required env vars (read from `backend/.env` via pydantic-settings; the app fails
 ## Backend architecture
 
 - `app/main.py` – creates tables with `Base.metadata.create_all`, then runs `migriraj_bazu()`, an ad-hoc migration that adds missing columns to existing tables and backfills them. There is no Alembic: **when adding a column to an existing table, add it to `nove_kolone` in `migriraj_bazu()` too**, using types valid in both SQLite and PostgreSQL (`TIMESTAMP`, not `DATETIME`). Also registers a `RequestValidationError` handler so every 422 has a single Serbian string in `detail`.
-- `app/models/__init__.py` – `Advokat` (lawyer account, `javni_kod` for the public intake link, subscription state), `Prijem` (one completed intake; `razgovor_json` is the display transcript, `analiza_status` = `u_obradi`/`gotova`/`neuspesna`) and `Razgovor` (an in-progress or finished chat session).
+- `app/models/__init__.py` – `Advokat` (lawyer account, `javni_kod` for the public intake link, subscription state, white-label `logo`/`boja`, hashed API key), `Prijem` (one completed intake; `razgovor_json` is the display transcript, `analiza_status` = `u_obradi`/`gotova`/`neuspesna`, `dodeljen_id` = team member handling it), `Razgovor` (an in-progress or finished chat session) and `Pozivnica` (team invite; only the token hash is stored).
+- **Offices/teams:** there is no separate office table. The owner's `Advokat` row *is* the office: team members have `vlasnik_id` pointing to it, and `advokat.kancelarija_id` (= `vlasnik_id or id`) is what intakes (`Prijem.advokat_id`), the intake link, subscription, branding and API key hang off. Use `vlasnik_kancelarije()` for office-level data and `samo_vlasnik` (routes/kancelarija.py) for owner-only actions. Plan limits live in `FUNKCIJE_PLANA` (`services/placanje.py`; trial includes everything).
 - `app/routes/` – thin routers (each module exposes `ruter`), business logic lives in `app/services/`. Services and `database.py` call `get_settings()` and create clients (Anthropic, Resend, ReportLab fonts) at module import time.
 - `app/utils/ogranicenje.py` – in-memory sliding-window rate limiter (per process; fine for one Render instance).
 
@@ -50,6 +51,13 @@ Required env vars (read from `backend/.env` via pydantic-settings; the app fails
 
 JWT (PyJWT, HS256, 24h, `sub` = advokat id) issued by `/auth/registracija` and `/auth/prijava`; passwords are bcrypt. Every lawyer route depends on `trenutni_advokat` (`services/auth.py`), which reads the `Authorization: Bearer` header — lawyer IDs never come from the URL, and intakes of other lawyers return 404. Emails are stored and compared lowercase.
 
+### Team, white-label, public API (`routes/kancelarija.py`, `routes/api.py`, `services/kancelarija.py`)
+
+- Invites: owner `POST /kancelarija/pozivnica` → email with `pages/pozivnica.html?t=<token>` → `POST /kancelarija/pozivnica/prihvati` creates the member account. New-intake emails go to every office member with `obavestenja` on.
+- White-label (plan Kancelarija): logo stored as a PNG/JPEG/WebP data URL (≤200 KB, verified with Pillow) + hex color; `brending()` returns them for the questionnaire (`/prijem/kancelarija/{kod}`) and the PDF only while the plan allows it.
+- Public REST API under `/api/v1` authenticated with `Authorization: Bearer lex_…` (separate from lawyer JWTs), read-only, rate-limited, disabled when the subscription lapses.
+- Language: the chat replies in Cyrillic if the client writes Cyrillic; English is allowed only for `probni`/`pro`/`kancelarija` (decided when the conversation starts). Analysis is always Serbian Latin.
+
 ### Payments
 
 `POST /placanje/webhook` verifies the Lemon Squeezy HMAC-SHA256 `X-Signature`, handles only `subscription_*` events, finds the lawyer by `meta.custom_data.advokat_id` (set by the checkout links on `podesavanja.html`) or by email, maps product name → `plan` via `MAPA_PROIZVODA` and LS status → `status_pretplate` via `MAPA_STATUSA`, and stores `ends_at` in `datum_isteka_pretplate`. New registrations start with a 14-day trial.
@@ -64,4 +72,5 @@ JWT (PyJWT, HS256, 24h, `sub` = advokat id) issued by `/auth/registracija` and `
 - Session state lives in `localStorage`: `lex_token`, `lex_ime`, `lex_email`, `lex_advokat_id` (from `advokat_id` in the login/registration response). The client chat keeps its `sesija_id` in `sessionStorage`.
 - The client chat link is `pages/upitnik.html?k=<javni_kod>` (shown on `podesavanja.html`). Email links use `pages/tabla.html?prijem=<id>`; unauthenticated users go through `prijava.html?nazad=…` and come back.
 - Response field names used by the pages (e.g. `odgovor`, `sesija_id`, `zavrseno`, `prijem_id`, `analiza_status`, `detail`) are the contract — renaming them in the backend requires updating the HTML pages.
-- `pages/politika-privatnosti.html` is a **draft** (marked NACRT) with placeholders that must be filled and legally reviewed.
+- `pages/politika-privatnosti.html` and `pages/uslovi-koriscenja.html` are **drafts** (marked NACRT) with placeholders that must be filled and legally reviewed.
+- Emails are sent from `lex.vlajkov.rs` (Resend, EU region); `FROM_EMAIL` must stay on that verified domain.

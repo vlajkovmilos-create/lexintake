@@ -456,6 +456,38 @@
     elUvodGreska.classList.add("vidljivo");
   }
 
+  // White-label: logo i boja kancelarije (plan Kancelarija)
+  function primeniBrending(podaci) {
+    const boja = /^#[0-9a-f]{6}$/i.test(podaci.boja || '') ? podaci.boja : null;
+    if (boja) {
+      const [r, g, b] = [1, 3, 5].map(i => parseInt(boja.slice(i, i + 2), 16) / 255);
+      const tekst = (0.299 * r + 0.587 * g + 0.114 * b) > 0.6 ? '#0f2744' : '#f5f0e8';
+      let stil = document.getElementById('brendStil');
+      if (!stil) {
+        stil = document.createElement('style');
+        stil.id = 'brendStil';
+        document.head.appendChild(stil);
+      }
+      stil.textContent = `
+        .zaglavlje, .poruka.klijent, .dugme-posalji, .dugme-pocni:not(:disabled) { background: ${boja}; }
+        .zaglavlje-naziv, .poruka.klijent, .dugme-pocni:not(:disabled) { color: ${tekst}; }
+        .dugme-posalji svg { stroke: ${tekst}; }
+        .zaglavlje-status { color: ${tekst}; opacity: 0.6; }
+        .unos-polje:focus { border-color: ${boja}; }
+        .saglasnost input { accent-color: ${boja}; }`;
+    }
+    if (/^data:image\/(png|jpeg|webp);base64,/.test(podaci.logo || '')) {
+      const avatar = document.querySelector('.zaglavlje-avatar');
+      avatar.innerHTML = '';
+      avatar.style.cssText = 'width:auto;max-width:120px;height:36px;border:none;background:none;border-radius:4px';
+      const img = document.createElement('img');
+      img.src = podaci.logo;
+      img.alt = '';
+      img.style.cssText = 'max-height:36px;max-width:120px;display:block';
+      avatar.appendChild(img);
+    }
+  }
+
   function postaviNaziv(naziv) {
     if (naziv) {
       document.getElementById("nazivKancelarije").textContent = naziv;
@@ -501,6 +533,7 @@
           const podaci = await odg.json();
           sesijaId = podaci.sesija_id;
           postaviNaziv(podaci.naziv_kancelarije);
+          primeniBrending(podaci);
           prikaziChat();
           podaci.poruke.forEach(p => dodajPoruku(p.content, p.role));
           if (podaci.zavrseno) { zavrsen = true; prikaziZavrseno(); }
@@ -519,6 +552,7 @@
         return;
       }
       postaviNaziv(podaci.naziv_kancelarije);
+      primeniBrending(podaci);
       if (!podaci.prima_prijeme) {
         document.getElementById("dugmePocni").classList.add("skriveno");
         prikaziUvodGresku("Ova kancelarija trenutno ne prima nove prijeme preko upitnika. Molimo kontaktirajte je direktno.");

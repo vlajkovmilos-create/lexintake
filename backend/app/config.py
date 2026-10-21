@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ai_model: str = "claude-sonnet-5-5"
 
     resend_api_key: str
-    from_email: str = "noreply@tvojdomen.com"
+    from_email: str = "LexIntake <obavestenja@lex.vlajkov.rs>"
 
     secret_key: str
     lemonsqueezy_webhook_secret: str = ""

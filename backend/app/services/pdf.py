@@ -9,7 +9,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.colors import HexColor, white
 from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, Image
 from ..models import Prijem, Advokat
 
 # Fontovi su u repou jer standardni PDF fontovi nemaju č, ć, đ
@@ -78,7 +78,31 @@ def _kutija(sadrzaj, pozadina=POZADINA, levo=None) -> Table:
     t.setStyle(TableStyle(stil))
     return t
 
-def generisi_pdf(prijem: Prijem, advokat: Advokat) -> bytes:
+def _logo(brend: dict):
+    from .kancelarija import logo_bajtovi
+    bajtovi = logo_bajtovi(brend.get("logo"))
+    if not bajtovi:
+        return None
+    try:
+        slika = Image(io.BytesIO(bajtovi))
+        # Najviše 4 x 1.4 cm, uz očuvanje proporcija
+        odnos = min(4*cm / slika.imageWidth, 1.4*cm / slika.imageHeight)
+        slika.drawWidth = slika.imageWidth * odnos
+        slika.drawHeight = slika.imageHeight * odnos
+        slika.hAlign = 'LEFT'
+        return slika
+    except Exception:
+        return None
+
+def generisi_pdf(prijem: Prijem, advokat: Advokat, brend: dict = None) -> bytes:
+    """advokat je vlasnik kancelarije; brend dolazi iz kancelarija.brending (white-label)."""
+    brend = brend or {}
+    bez_lexintake = brend.get("bez_lexintake", False)
+    boja_zaglavlja = HexColor(brend["boja"]) if brend.get("boja") else NAVY
+    # Na svetloj boji zaglavlja tekst je taman, da ostane čitljiv
+    svetla = (0.299*boja_zaglavlja.red + 0.587*boja_zaglavlja.green + 0.114*boja_zaglavlja.blue) > 0.6
+    boja_teksta_zaglavlja = NAVY if svetla else KREM
+    naziv = advokat.naziv_kancelarije or advokat.ime
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -88,7 +112,7 @@ def generisi_pdf(prijem: Prijem, advokat: Advokat) -> bytes:
         topMargin=2*cm,
         bottomMargin=2*cm,
         title=f"Prijem #{prijem.id}",
-        author="LexIntake"
+        author=naziv if bez_lexintake else "LexIntake"
     )
 
     elementi = []
@@ -106,15 +130,20 @@ def generisi_pdf(prijem: Prijem, advokat: Advokat) -> bytes:
 
     datum = prijem.datum_prijema.strftime("%d.%m.%Y. u %H:%M")
 
+    logo = _logo(brend) if bez_lexintake else None
+    if logo:
+        elementi.append(logo)
+        elementi.append(Spacer(1, 0.3*cm))
+
     tabela_zaglavlje = Table([[
-        Paragraph('<b>LexIntake</b>', _stil('Logo', fontSize=16, leading=20, textColor=KREM)),
+        Paragraph(f'<b>{_t(naziv) if bez_lexintake else "LexIntake"}</b>', _stil('Logo', fontSize=16, leading=20, textColor=boja_teksta_zaglavlja)),
         Paragraph(
             f'Urgentnost: <b>{tekst_urgentnosti(prijem.procena_urgentnosti)}</b>',
-            _stil('Urg', fontSize=9, leading=12, textColor=white, alignment=2)
+            _stil('Urg', fontSize=9, leading=12, textColor=NAVY if svetla else white, alignment=2)
         )
     ]], colWidths=[11*cm, 6*cm])
     tabela_zaglavlje.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), NAVY),
+        ('BACKGROUND', (0, 0), (-1, -1), boja_zaglavlja),
         ('PADDING', (0, 0), (-1, -1), 14),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('ROUNDEDCORNERS', [6, 6, 6, 6]),
@@ -124,7 +153,7 @@ def generisi_pdf(prijem: Prijem, advokat: Advokat) -> bytes:
 
     elementi.append(Paragraph(_t(prijem.klijent_ime or 'Nepoznat klijent'), stil_naslov))
     elementi.append(Paragraph(
-        f'Prijem #{prijem.id} · {datum} · {_t(advokat.naziv_kancelarije or advokat.ime)}',
+        f'Prijem #{prijem.id} · {datum} · {_t(naziv)}',
         stil_podnaslov
     ))
     elementi.append(HRFlowable(width="100%", thickness=0.5, color=HexColor('#e0d8cc')))
@@ -194,7 +223,7 @@ def generisi_pdf(prijem: Prijem, advokat: Advokat) -> bytes:
     elementi.append(HRFlowable(width="100%", thickness=0.5, color=HexColor('#e0d8cc')))
     elementi.append(Spacer(1, 0.2*cm))
     tabela_podnozje = Table([[
-        Paragraph('LexIntake · Automatski generisan izveštaj · Poverljivo', stil_podnozje),
+        Paragraph(f'{_t(naziv) if bez_lexintake else "LexIntake"} · Automatski generisan izveštaj · Poverljivo', stil_podnozje),
         Paragraph(f'Prijem #{prijem.id} · {datum}', _stil('Podnozje2', fontSize=9, textColor=SIVA, leading=12, alignment=2))
     ]], colWidths=[10*cm, 7*cm])
     tabela_podnozje.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')]))

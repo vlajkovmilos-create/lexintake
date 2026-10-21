@@ -676,6 +676,7 @@
             <th>Datum</th>
             <th>Status</th>
             <th>Urgentnost</th>
+            <th>Vodi</th>
             <th></th>
           </tr>
         </thead>
@@ -690,6 +691,7 @@
               <td>${formatujDatum(p.datum_prijema)}</td>
               <td>${oznakaStatusa(p.status)}</td>
               <td>${oznakaUrgentnosti(p)}</td>
+              <td>${esc(p.dodeljen_ime || '—')}</td>
               <td><button class="dugme-pregled" onclick="event.stopPropagation();otvoriModal(${Number(p.id)})">Pregled</button></td>
             </tr>
           `).join('')}
@@ -774,6 +776,15 @@
           <div class="transkript">${transkript}</div>
         </details>` : ''}
 
+        ${(p.tim || []).length > 1 ? `
+        <div class="sekcija-razmak">
+          <div class="sekcija-oznaka">Prijem vodi</div>
+          <select class="status-izbornik" id="dodelaIzbornik" onchange="dodeliPrijem()">
+            <option value="">— niko —</option>
+            ${p.tim.map(a => `<option value="${Number(a.id)}" ${a.id === p.dodeljen_id ? 'selected' : ''}>${esc(a.ime)}</option>`).join('')}
+          </select>
+        </div>` : ''}
+
         <div class="sekcija-razmak">
           <div class="sekcija-oznaka">Promena statusa</div>
           <select class="status-izbornik" id="statusIzbornik">
@@ -804,6 +815,20 @@
       zatvoriModalDugme();
     } catch (e) {
       alert('Greška pri čuvanju statusa.');
+    }
+  }
+
+  async function dodeliPrijem() {
+    const vrednost = document.getElementById('dodelaIzbornik').value;
+    try {
+      const odg = await apiAdvokat(`/prijem/dodeli/${trenutniPrijemId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ advokat_id: vrednost ? Number(vrednost) : null })
+      });
+      if (!odg.ok) throw new Error();
+      await ucitajPrijeme();
+    } catch (e) {
+      alert('Greška pri dodeli prijema.');
     }
   }
 

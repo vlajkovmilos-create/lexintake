@@ -18,13 +18,35 @@ class Advokat(Base):
     # Javni kod za link upitnika (upitnik.html?k=...), da se ID advokata ne vidi
     javni_kod = Column(String(32), unique=True, index=True)
 
+    # Tim: član kancelarije pokazuje na vlasnika; vlasnik (i advokat bez tima) ima NULL.
+    # Pretplata, link upitnika, brending, API ključ i prijemi pripadaju vlasniku.
+    vlasnik_id = Column(Integer, ForeignKey("advokati.id"), index=True)
+    obavestenja = Column(Boolean, default=True)  # mejl o novom prijemu
+
+    # White-label (plan Kancelarija)
+    logo = Column(Text)  # data URL (PNG/JPEG/WebP), najviše ~200 KB
+    boja = Column(String(7))  # npr. #0f2744
+
+    # API pristup (plan Kancelarija); čuva se samo heš ključa
+    api_kljuc_hash = Column(String(64), index=True)
+    api_kljuc_prefiks = Column(String(16))
+    api_kljuc_datum = Column(DateTime)
+
     plan = Column(String(20), default="probni")  # probni / starter / pro / kancelarija
     status_pretplate = Column(String(20), default="probni_period")  # probni_period / aktivna / istekla / otkazana
     lemonsqueezy_id = Column(String(100))  # ID pretplate u Lemon Squeezy
     datum_isteka_probe = Column(DateTime)
     datum_isteka_pretplate = Column(DateTime)  # do kada važi otkazana pretplata
 
-    prijemi = relationship("Prijem", back_populates="advokat")
+    prijemi = relationship("Prijem", back_populates="advokat", foreign_keys="Prijem.advokat_id")
+
+    @property
+    def kancelarija_id(self) -> int:
+        return self.vlasnik_id or self.id
+
+    @property
+    def je_vlasnik(self) -> bool:
+        return self.vlasnik_id is None
 
     def __repr__(self):
         return f"<Advokat {self.email}>"
@@ -34,7 +56,8 @@ class Prijem(Base):
     __tablename__ = "prijemi"
 
     id = Column(Integer, primary_key=True, index=True)
-    advokat_id = Column(Integer, ForeignKey("advokati.id"), nullable=False, index=True)
+    advokat_id = Column(Integer, ForeignKey("advokati.id"), nullable=False, index=True)  # vlasnik kancelarije
+    dodeljen_id = Column(Integer, ForeignKey("advokati.id"))  # advokat iz tima koji vodi prijem
 
     klijent_ime = Column(String(100))
     klijent_email = Column(String(150))
@@ -59,7 +82,7 @@ class Prijem(Base):
     datum_prijema = Column(DateTime, default=datetime.utcnow)
     datum_azuriranja = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    advokat = relationship("Advokat", back_populates="prijemi")
+    advokat = relationship("Advokat", back_populates="prijemi", foreign_keys=[advokat_id])
 
     def __repr__(self):
         return f"<Prijem {self.klijent_ime} - {self.oblast_prava}>"
@@ -84,3 +107,16 @@ class Razgovor(Base):
     datum_saglasnosti = Column(DateTime)
     datum_pocetka = Column(DateTime, default=datetime.utcnow, index=True)
     datum_azuriranja = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Pozivnica(Base):
+    """Poziv kolegi da se pridruži kancelariji; token se šalje mejlom, u bazi je samo heš."""
+    __tablename__ = "pozivnice"
+
+    id = Column(Integer, primary_key=True)
+    vlasnik_id = Column(Integer, ForeignKey("advokati.id"), nullable=False, index=True)
+    email = Column(String(150), nullable=False)
+    token_hash = Column(String(64), unique=True, nullable=False)
+    datum_slanja = Column(DateTime, default=datetime.utcnow)
+    datum_isteka = Column(DateTime, nullable=False)
+    prihvacena = Column(Boolean, default=False)

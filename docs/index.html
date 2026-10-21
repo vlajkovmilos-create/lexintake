@@ -576,53 +576,6 @@ h2 {
 .urg-val { font-size: 11px; font-weight: 500; color: #a32d2d; }
 
 /* ── TESTIMONIALS ── */
-.testimonials-section { background: var(--cream-dark); }
-.testimonials-inner { max-width: 1200px; margin: 0 auto; }
-.testimonials-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-top: 48px;
-}
-.testimonial-card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 32px;
-}
-.testimonial-quote {
-  font-family: 'Playfair Display', serif;
-  font-size: 17px;
-  font-weight: 400;
-  color: var(--navy);
-  line-height: 1.6;
-  font-style: italic;
-  margin-bottom: 24px;
-  position: relative;
-  padding-left: 20px;
-}
-.testimonial-quote::before {
-  content: '"';
-  font-size: 48px;
-  color: var(--gold-light);
-  font-family: 'Playfair Display', serif;
-  position: absolute;
-  left: -4px;
-  top: -12px;
-  line-height: 1;
-}
-.testimonial-author { display: flex; align-items: center; gap: 12px; }
-.testimonial-avatar {
-  width: 40px; height: 40px;
-  background: var(--navy);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Playfair Display', serif;
-  font-size: 15px;
-  color: var(--gold);
-}
-.testimonial-name { font-size: 14px; font-weight: 500; color: var(--navy); }
-.testimonial-title { font-size: 12px; color: var(--text-muted); }
 
 .pricing-section { background: var(--white); }
 .pricing-inner { max-width: 1000px; margin: 0 auto; }
@@ -797,8 +750,7 @@ footer {
   section { padding: 56px 24px; }
   .how-steps, .features-grid, .pricing-grid { grid-template-columns: 1fr; }
   .how-steps::before { display: none; }
-  .report-inner, .testimonials-grid { grid-template-columns: 1fr; }
-  .trust-bar { padding: 18px 24px; }
+  .report-inner,   .trust-bar { padding: 18px 24px; }
   .trust-bar-inner { flex-wrap: wrap; gap: 16px; }
   .footer-inner { grid-template-columns: 1fr; gap: 32px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
@@ -844,18 +796,18 @@ footer {
       </div>
       <div class="hero-stats">
         <div class="hero-stat">
-          <span class="hero-stat-val">4.2<span style="font-size:18px">min</span></span>
-          <span class="hero-stat-label">prosečan upitnik</span>
+          <span class="hero-stat-val">~5<span style="font-size:18px">min</span></span>
+          <span class="hero-stat-label">trajanje upitnika</span>
         </div>
         <div class="hero-stat-divider"></div>
         <div class="hero-stat">
-          <span class="hero-stat-val">12h</span>
-          <span class="hero-stat-label">mesečna ušteda</span>
+          <span class="hero-stat-val">24/7</span>
+          <span class="hero-stat-label">prima klijente</span>
         </div>
         <div class="hero-stat-divider"></div>
         <div class="hero-stat">
-          <span class="hero-stat-val">68%</span>
-          <span class="hero-stat-label">konverzija klijenata</span>
+          <span class="hero-stat-val">PDF</span>
+          <span class="hero-stat-label">izveštaj odmah</span>
         </div>
       </div>
     </div>
@@ -976,8 +928,8 @@ footer {
         <div class="feature-icon">
           <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.55 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         </div>
-        <h3>Email i SMS notifikacije</h3>
-        <p>Odmah po završetku upitnika dobijate notifikaciju sa linkom ka izveštaju. Opciono i SMS podsetnik za zakazanu konsultaciju.</p>
+        <h3>Email notifikacije</h3>
+        <p>Odmah po završetku upitnika vi i vaše kolege dobijate email sa pregledom slučaja i linkom ka kompletnom izveštaju.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">
@@ -991,7 +943,7 @@ footer {
           <svg viewBox="0 0 24 24"><path d="M12 3L4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"/></svg>
         </div>
         <h3>Advokatska poverljivost</h3>
-        <p>Svi podaci su enkriptovani, smešteni na EU serverima, i dostupni isključivo vama. Potpuno u skladu sa Zakonom o advokaturi i GDPR-om.</p>
+        <p>Podaci se prenose šifrovanom vezom i dostupni su isključivo vašoj kancelariji. Prijem možete trajno obrisati u bilo kom trenutku.</p>
       </div>
     </div>
   </div>
@@ -1059,37 +1011,6 @@ footer {
   </div>
 </section>
 
-<section class="testimonials-section">
-  <div class="testimonials-inner">
-    <div style="text-align:center">
-      <span class="section-eyebrow">Iskustva</span>
-      <h2>Što kažu advokati koji koriste LexIntake</h2>
-    </div>
-    <div class="testimonials-grid">
-      <div class="testimonial-card">
-        <p class="testimonial-quote">Ranije sam trošio 20 minuta na početku svakog razgovora samo da bih razumeo šta klijent uopšte hoće. Sada dobijem izveštaj pre sastanka i odmah idem na suštinu. Štedi mi minimum sat vremena dnevno.</p>
-        <div class="testimonial-author">
-          <div class="testimonial-avatar">NM</div>
-          <div>
-            <div class="testimonial-name">Nikola Marković</div>
-            <div class="testimonial-title">Advokat · Beograd · Radno i privredno pravo</div>
-          </div>
-        </div>
-      </div>
-      <div class="testimonial-card">
-        <p class="testimonial-quote">Bila sam skeptična prema AI u advokatauri, ali ovo nije AI koji daje pravne savete — samo prikuplja podatke umesto mene. Razlika je ogromna. Klijenti dolaze fokusirani, a ja imam sve informacije.</p>
-        <div class="testimonial-author">
-          <div class="testimonial-avatar">IJ</div>
-          <div>
-            <div class="testimonial-name">Ivana Janković</div>
-            <div class="testimonial-title">Advokatica · Novi Sad · Porodično pravo</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <section class="pricing-section" id="cene">
   <div class="pricing-inner">
     <div style="text-align:center">
@@ -1120,11 +1041,10 @@ footer {
         <div class="pricing-divider"></div>
         <div class="pricing-features">
           <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Neograničen broj prijema</div>
-          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Do 5 advokata u kancelariji</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Do 5 advokata u kancelariji, dodela prijema</div>
           <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>PDF export izveštaja</div>
           <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Kontrolna tabla za praćenje slučajeva</div>
-          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>SMS notifikacije</div>
-          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Prioritetna podrška</div>
+                    <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Prioritetna podrška</div>
         </div>
         <a href="pages/registracija.html" class="pricing-cta" style="text-decoration:none;text-align:center;display:block">Počnite besplatno</a>
       </div>
@@ -1136,9 +1056,9 @@ footer {
         <div class="pricing-divider"></div>
         <div class="pricing-features">
           <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Sve iz Pro plana</div>
-          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>White-label brending</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vaš logo i boje u upitniku i izveštaju</div>
           <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Neograničen broj advokata</div>
-          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>API integracija</div>
+          <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>API pristup prijemima (za CRM)</div>
           <div class="pricing-feature"><div class="pf-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Onboarding sesija</div>
         </div>
         <a href="pages/registracija.html" class="pricing-cta" style="text-decoration:none;text-align:center;display:block">Počnite besplatno</a>
@@ -1180,7 +1100,7 @@ footer {
           Na kojim jezicima radi asistent?
           <svg class="faq-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <div class="faq-answer">Primarno na srpskom jeziku (latinica i ćirilica). Pro i Kancelarija planovi uključuju podršku za engleski jezik, što je korisno za klijente dijaspore ili strane privredne subjekte.</div>
+        <div class="faq-answer">Na srpskom jeziku — asistent odgovara latinicom ili ćirilicom, kako klijent piše. Pro i Kancelarija planovi uključuju i engleski jezik, što je korisno za klijente dijaspore ili strane privredne subjekte. Izveštaj za advokata je uvek na srpskom.</div>
       </div>
       <div class="faq-item">
         <button class="faq-question" onclick="toggleFaq(this)">
@@ -1219,7 +1139,7 @@ footer {
         <a href="#">O nama</a>
         <a href="#">Kontakt</a>
         <a href="pages/politika-privatnosti.html">Politika privatnosti</a>
-        <a href="#">Uslovi korišćenja</a>
+        <a href="pages/uslovi-koriscenja.html">Uslovi korišćenja</a>
       </div>
     </div>
   </div>

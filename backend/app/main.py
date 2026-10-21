@@ -9,7 +9,7 @@ from sqlalchemy import text, inspect
 
 from .config import get_settings
 from .database import engine, Base
-from .routes import auth, prijem, placanje
+from .routes import auth, prijem, placanje, kancelarija, api
 from .services.auth import generisi_javni_kod, PROBNI_PERIOD_DANA
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -32,9 +32,17 @@ def migriraj_bazu():
             "datum_isteka_probe": "TIMESTAMP",
             "javni_kod": "VARCHAR(32)",
             "datum_isteka_pretplate": "TIMESTAMP",
+            "vlasnik_id": "INTEGER",
+            "obavestenja": "BOOLEAN DEFAULT TRUE",
+            "logo": "TEXT",
+            "boja": "VARCHAR(7)",
+            "api_kljuc_hash": "VARCHAR(64)",
+            "api_kljuc_prefiks": "VARCHAR(16)",
+            "api_kljuc_datum": "TIMESTAMP",
         },
         "prijemi": {
             "analiza_status": "VARCHAR(20)",
+            "dodeljen_id": "INTEGER",
         },
     }
 
@@ -100,6 +108,9 @@ NAZIVI_POLJA = {
     "telefon": "telefon",
     "poruka": "poruka",
     "kod": "kod upitnika",
+    "token": "pozivnica",
+    "logo": "logo",
+    "boja": "boja",
 }
 
 @app.exception_handler(RequestValidationError)
@@ -131,6 +142,8 @@ async def greska_validacije(request: Request, greska: RequestValidationError):
 app.include_router(auth.ruter)
 app.include_router(prijem.ruter)
 app.include_router(placanje.ruter)
+app.include_router(kancelarija.ruter)
+app.include_router(api.ruter)
 
 @app.get("/")
 def root():

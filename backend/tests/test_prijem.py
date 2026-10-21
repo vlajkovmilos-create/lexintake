@@ -17,7 +17,7 @@ def test_ceo_tok_razgovora(klijent, lazni_ai):
     lazni_ai["odgovori"].extend(["Opišite problem.", "Hvala. RAZGOVOR_ZAVRŠEN: Advokat će vas kontaktirati."])
 
     info = klijent.get(f"/prijem/kancelarija/{profil['javni_kod']}").json()
-    assert info == {"naziv_kancelarije": "Kancelarija A", "prima_prijeme": True}
+    assert info["naziv_kancelarije"] == "Kancelarija A" and info["prima_prijeme"] is True
 
     sesija = zapocni(klijent, profil["javni_kod"])
     odg = klijent.post("/prijem/poruka", json={"sesija_id": sesija, "poruka": "Marko, 064123"}).json()

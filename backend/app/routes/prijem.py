@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..database import get_db
 from ..models import Prijem, Advokat, Razgovor
-from ..services.auth import trenutni_advokat
+from ..services.auth import trenutni_advokat, vlasnik_kancelarije
+from ..services.kancelarija import brending
 from ..services.pdf import generisi_pdf
 from ..services.placanje import moze_da_prima_prijeme
 from ..services import prijem as servis
@@ -47,6 +48,9 @@ class PorukaIzlaz(BaseModel):
 class StatusAzuriranje(BaseModel):
     status: str
 
+class DodelaUlaz(BaseModel):
+    advokat_id: Optional[int] = None
+
 
 def _naziv(advokat: Advokat) -> str:
     return advokat.naziv_kancelarije or advokat.ime
@@ -59,7 +63,7 @@ def info_kancelarije(kod: str, db: Session = Depends(get_db)):
     advokat = db.query(Advokat).filter(Advokat.javni_kod == kod).first()
     if not advokat:
         raise HTTPException(status_code=404, detail="Link upitnika nije ispravan.")
-    return {"naziv_kancelarije": _naziv(advokat), "prima_prijeme": moze_da_prima_prijeme(db, advokat)}
+    return {"naziv_kancelarije": _naziv(advokat), "prima_prijeme": moze_da_prima_prijeme(db, advokat), **brending(db, advokat)}
 
 
 @ruter.post("/razgovor", response_model=PocetakIzlaz)
@@ -95,6 +99,7 @@ def vrati_razgovor(sesija_id: str, db: Session = Depends(get_db)):
         "naziv_kancelarije": _naziv(advokat) if advokat else "",
         "zavrseno": bool(razgovor.zavrsen),
         "poruke": servis.transkript(razgovor),
+        **(brending(db, advokat) if advokat else {}),
     }
 
 
@@ -135,7 +140,8 @@ def posalji_poruku(podaci: PorukaUlaz, request: Request, pozadina: BackgroundTas
 # ── Rute advokata (zahtevaju prijavu) ──
 
 def _prijem_advokata(db: Session, prijem_id: int, advokat: Advokat) -> Prijem:
-    prijem = db.query(Prijem).filter(Prijem.id == prijem_id, Prijem.advokat_id == advokat.id).first()
+    # Prijemi pripadaju kancelariji (vlasniku); vide ih svi članovi tima
+    prijem = db.query(Prijem).filter(Prijem.id == prijem_id, Prijem.advokat_id == advokat.kancelarija_id).first()
     if not prijem:
         raise HTTPException(status_code=404, detail="Prijem nije pronađen")
     return prijem
@@ -144,8 +150,9 @@ def _prijem_advokata(db: Session, prijem_id: int, advokat: Advokat) -> Prijem:
 @ruter.get("/lista")
 def lista_prijema(advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
     prijemi = db.query(Prijem).filter(
-        Prijem.advokat_id == advokat.id
+        Prijem.advokat_id == advokat.kancelarija_id
     ).order_by(Prijem.datum_prijema.desc()).all()
+    imena = _imena_tima(db, advokat)
 
     return [
         {
@@ -157,10 +164,19 @@ def lista_prijema(advokat: Advokat = Depends(trenutni_advokat), db: Session = De
             "status": p.status,
             "procena_urgentnosti": p.procena_urgentnosti,
             "analiza_status": p.analiza_status,
+            "dodeljen_id": p.dodeljen_id,
+            "dodeljen_ime": imena.get(p.dodeljen_id),
             "datum_prijema": p.datum_prijema.isoformat()
         }
         for p in prijemi
     ]
+
+
+def _imena_tima(db: Session, advokat: Advokat) -> dict:
+    tim = db.query(Advokat).filter(
+        (Advokat.id == advokat.kancelarija_id) | (Advokat.vlasnik_id == advokat.kancelarija_id)
+    ).all()
+    return {a.id: a.ime for a in tim}
 
 
 @ruter.get("/detalji/{prijem_id}")
@@ -185,6 +201,8 @@ def detalji_prijema(prijem_id: int, advokat: Advokat = Depends(trenutni_advokat)
         "preporuceni_koraci": prijem.preporuceni_koraci,
         "analiza_status": prijem.analiza_status,
         "status": prijem.status,
+        "dodeljen_id": prijem.dodeljen_id,
+        "tim": [{"id": i, "ime": ime} for i, ime in _imena_tima(db, advokat).items()],
         "datum_prijema": prijem.datum_prijema.isoformat(),
         "razgovor": [
             {"role": p.get("role"), "content": p.get("content")}
@@ -202,6 +220,16 @@ def azuriraj_status(prijem_id: int, podaci: StatusAzuriranje, advokat: Advokat =
     prijem.status = podaci.status
     db.commit()
     return {"poruka": "Status uspešno ažuriran", "status": podaci.status}
+
+
+@ruter.patch("/dodeli/{prijem_id}")
+def dodeli_prijem(prijem_id: int, podaci: DodelaUlaz, advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
+    prijem = _prijem_advokata(db, prijem_id, advokat)
+    if podaci.advokat_id is not None and podaci.advokat_id not in _imena_tima(db, advokat):
+        raise HTTPException(status_code=400, detail="Advokat nije član vaše kancelarije.")
+    prijem.dodeljen_id = podaci.advokat_id
+    db.commit()
+    return {"poruka": "Prijem je dodeljen", "dodeljen_id": prijem.dodeljen_id}
 
 
 @ruter.delete("/{prijem_id}")
@@ -233,8 +261,9 @@ def _ocisti_ime_fajla(tekst: str) -> str:
 @ruter.get("/pdf/{prijem_id}")
 def preuzmi_pdf(prijem_id: int, advokat: Advokat = Depends(trenutni_advokat), db: Session = Depends(get_db)):
     prijem = _prijem_advokata(db, prijem_id, advokat)
+    vlasnik = vlasnik_kancelarije(db, advokat)
 
-    pdf = generisi_pdf(prijem, advokat)
+    pdf = generisi_pdf(prijem, vlasnik, brending(db, vlasnik))
 
     ime_fajla = f"prijem_{prijem_id}_{_ocisti_ime_fajla(prijem.klijent_ime or 'klijent')}.pdf"
 

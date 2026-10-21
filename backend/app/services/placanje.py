@@ -24,6 +24,17 @@ LIMIT_PRIJEMA_MESECNO = {
     "starter": 30,
 }
 
+# Šta plan uključuje; probni period uključuje sve da bi advokat mogao da isproba
+FUNKCIJE_PLANA = {
+    "probni": {"max_advokata": 5, "white_label": True, "api": True},
+    "starter": {"max_advokata": 1, "white_label": False, "api": False},
+    "pro": {"max_advokata": 5, "white_label": False, "api": False},
+    "kancelarija": {"max_advokata": None, "white_label": True, "api": True},
+}
+
+def funkcije_plana(advokat: Advokat) -> dict:
+    return FUNKCIJE_PLANA.get(advokat.plan, FUNKCIJE_PLANA["starter"])
+
 # Lemon Squeezy status pretplate -> naš status_pretplate
 MAPA_STATUSA = {
     "active": "aktivna",
