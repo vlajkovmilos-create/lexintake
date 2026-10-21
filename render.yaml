@@ -4,6 +4,7 @@ services:
     runtime: python
     buildCommand: cd backend && pip install -r requirements.txt
     startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /zdravlje
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -14,4 +15,12 @@ services:
       - key: SECRET_KEY
         sync: false
       - key: DATABASE_URL
-        value: sqlite:///./lexintake.db
+        sync: false
+      - key: LEMONSQUEEZY_WEBHOOK_SECRET
+        sync: false
+      - key: AI_MODEL
+        value: claude-sonnet-5-5
+      - key: FRONTEND_URL
+        value: https://vlajkovmilos-create.github.io/lexintake
+      - key: CORS_ORIGINI
+        value: https://vlajkovmilos-create.github.io

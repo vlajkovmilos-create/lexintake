@@ -19,43 +19,49 @@ Run everything from `backend/` (imports are package-relative from `app`, and the
 
 ```bash
 cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload        # local dev server, docs at /docs
+pip install -r requirements-dev.txt  # requirements.txt + pytest/httpx
+uvicorn app.main:app --reload        # local dev server on :8000, docs at /docs
+python -m pytest                     # all tests
+python -m pytest tests/test_prijem.py::test_ceo_tok_razgovora   # single test
 ```
 
-There is no test suite, linter, or formatter configured.
+Tests (`backend/tests/`) use a temporary SQLite DB and replace Claude/Resend with fakes via the `lazni_ai` fixture in `conftest.py` (it monkeypatches the names imported into `services/prijem.py`), so they cost nothing. No linter/formatter is configured.
 
-Required env vars (read from `backend/.env` via pydantic-settings; the app fails at import time without them): `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `SECRET_KEY`. Optional: `DATABASE_URL` (defaults to `sqlite:///./lexintake.db`; PostgreSQL via psycopg2 is also supported), `FROM_EMAIL`, `LEMONSQUEEZY_WEBHOOK_SECRET` (webhook requests are all rejected if empty).
+For the frontend, serve `docs/` locally (e.g. `cd docs && python -m http.server 5500`); `docs/js/zajednicko.js` automatically points `API_URL` at `http://localhost:8000` when the page is opened from localhost.
+
+Required env vars (read from `backend/.env` via pydantic-settings; the app fails at import time without them): `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `SECRET_KEY`. Optional (see `app/config.py`): `DATABASE_URL` (defaults to `sqlite:///./lexintake.db`; production uses PostgreSQL on Neon via psycopg2), `AI_MODEL` (default `claude-sonnet-5-5`), `FROM_EMAIL` (must be on a domain verified in Resend), `LEMONSQUEEZY_WEBHOOK_SECRET` (webhook requests are all rejected if empty), `FRONTEND_URL` (links in emails), `CORS_ORIGINI`, and the abuse limits `MAX_*`.
 
 ## Backend architecture
 
-- `app/main.py` – creates tables with `Base.metadata.create_all`, then runs `migriraj_bazu()`, an ad-hoc migration that `ALTER TABLE advokati ADD COLUMN`s any missing subscription columns. There is no Alembic: **when adding a column to an existing table, add it to `nove_kolone` in `migriraj_bazu()` too**, otherwise existing databases won't get it.
-- `app/models/__init__.py` – two models: `Advokat` (lawyer account + subscription state) and `Prijem` (one completed client intake, including the raw conversation in `razgovor_json`).
+- `app/main.py` – creates tables with `Base.metadata.create_all`, then runs `migriraj_bazu()`, an ad-hoc migration that adds missing columns to existing tables and backfills them. There is no Alembic: **when adding a column to an existing table, add it to `nove_kolone` in `migriraj_bazu()` too**, using types valid in both SQLite and PostgreSQL (`TIMESTAMP`, not `DATETIME`). Also registers a `RequestValidationError` handler so every 422 has a single Serbian string in `detail`.
+- `app/models/__init__.py` – `Advokat` (lawyer account, `javni_kod` for the public intake link, subscription state), `Prijem` (one completed intake; `razgovor_json` is the display transcript, `analiza_status` = `u_obradi`/`gotova`/`neuspesna`) and `Razgovor` (an in-progress or finished chat session).
 - `app/routes/` – thin routers (each module exposes `ruter`), business logic lives in `app/services/`. Services and `database.py` call `get_settings()` and create clients (Anthropic, Resend, ReportLab fonts) at module import time.
+- `app/utils/ogranicenje.py` – in-memory sliding-window rate limiter (per process; fine for one Render instance).
 
-### Intake flow (`routes/prijem.py` + `services/ai.py`)
+### Intake flow (`routes/prijem.py` + `services/prijem.py` + `services/ai.py`)
 
-- The chat is **stateless on the server**: the frontend sends the full `istorija` (message list) on every `POST /prijem/poruka` and gets the updated list back. An empty history returns a hard-coded greeting without calling the model.
-- Only lawyers with `status_pretplate` in `probni_period`/`aktivna` can receive intakes (403 otherwise).
-- The system prompt in `SISTEM_PORUKA` tells the model to end the conversation with a sentence starting with the sentinel `RAZGOVOR_ZAVRŠEN:`. The route detects that string to mark the intake finished — keep the prompt and the check in sync.
-- On completion `_sacuvaj_prijem` calls `generisi_analizu` (second model call that must return a JSON object whose keys map 1:1 to `Prijem` columns), saves the row, then emails the lawyer. Analysis and email failures are swallowed so the intake is still saved.
-- Model is hard-coded as `claude-sonnet-4-6` in `services/ai.py`.
+- The client opens `upitnik.html?k=<javni_kod>`, gives consent, and `POST /prijem/razgovor` creates a `Razgovor` (greeting and system prompt are frozen in the row). Each `POST /prijem/poruka` sends only `sesija_id` + `poruka`; **the history lives on the server** in `Razgovor.poruke_json`, in exactly the shape sent to the Claude API (assistant turns are full content-block lists, including thinking blocks). Keep it append-only — never rewrite earlier messages or the system prompt mid-conversation (preserved-thinking check on newer models). `GET /prijem/razgovor/{sesija_id}` restores a chat after a page reload.
+- Claude calls go through `client.beta.messages.create` with `fallbacks="default"` (beta `server-side-fallback-2026-07-01`), `effort` low for chat / medium for analysis. A `refusal` stop reason is not stored; the client gets a polite fallback message.
+- Lawyers can receive intakes while `status_pretplate` is `probni_period` (until `datum_isteka_probe`), `aktivna`, or `otkazana` (until `datum_isteka_pretplate`); `osvezi_status_pretplate` flips expired ones to `istekla`. Starter plan has a monthly cap (`LIMIT_PRIJEMA_MESECNO`), plus per-lawyer/day and per-IP limits from settings.
+- The system prompt in `SISTEM_PORUKA` tells the model to end with a sentence starting with the sentinel `RAZGOVOR_ZAVRŠEN:`. `nastavi_razgovor` detects it and strips it from the text shown to the client — keep the prompt and the check in sync. A hard cap (`MAX_PORUKA_PO_RAZGOVORU`) closes the chat without a model call.
+- On completion `sacuvaj_prijem` stores the `Prijem` immediately (`analiza_status="u_obradi"`), and `obradi_analizu` runs as a FastAPI background task with its own DB session: `generisi_analizu` (structured output via `output_config.format` + `SEMA_ANALIZE`, keys map 1:1 to `Prijem` columns, values truncated to column lengths), then the email to the lawyer. Lawyers can re-run a failed analysis (`POST /prijem/analiza/{id}`) or delete an intake (`DELETE /prijem/{id}`). Unfinished conversations older than `DANA_CUVANJA_NEDOVRSENIH` are deleted.
 
 ### Auth
 
-JWT (HS256, 24h, `sub` = advokat id) issued by `/auth/registracija` and `/auth/prijava`. Only `GET /auth/ja` actually validates the token; the other routes (`/prijem/lista/{advokat_id}`, `/prijem/detalji/…`, `/prijem/status/…`, `/prijem/pdf/…`, `/auth/azuriraj/{advokat_id}`) take IDs from the URL without checking the token.
+JWT (PyJWT, HS256, 24h, `sub` = advokat id) issued by `/auth/registracija` and `/auth/prijava`; passwords are bcrypt. Every lawyer route depends on `trenutni_advokat` (`services/auth.py`), which reads the `Authorization: Bearer` header — lawyer IDs never come from the URL, and intakes of other lawyers return 404. Emails are stored and compared lowercase.
 
 ### Payments
 
-`POST /placanje/webhook` verifies the Lemon Squeezy HMAC-SHA256 `X-Signature`, matches the buyer to an `Advokat` by email, and maps product name → `plan` via `MAPA_PROIZVODA` and LS status → `status_pretplate` (`probni_period` / `aktivna` / `otkazana` / `istekla`). New registrations start with a 14-day trial.
+`POST /placanje/webhook` verifies the Lemon Squeezy HMAC-SHA256 `X-Signature`, handles only `subscription_*` events, finds the lawyer by `meta.custom_data.advokat_id` (set by the checkout links on `podesavanja.html`) or by email, maps product name → `plan` via `MAPA_PROIZVODA` and LS status → `status_pretplate` via `MAPA_STATUSA`, and stores `ends_at` in `datum_isteka_pretplate`. New registrations start with a 14-day trial.
 
 ### PDF
 
-`services/pdf.py` builds the report with ReportLab and registers DejaVu fonts from `/usr/share/fonts/truetype/dejavu/` at import time (needed for Serbian diacritics) — that path must exist on the host. Download filenames are ASCII-sanitized by `_ocisti_ime_fajla` because non-ASCII chars break the `Content-Disposition` header.
+`services/pdf.py` builds the report with ReportLab using the DejaVu fonts bundled in `app/fonti/` (needed for Serbian diacritics; don't use the built-in Helvetica). All text goes through `_t()` (XML escape) before `Paragraph`. Download filenames are ASCII-sanitized by `_ocisti_ime_fajla` because non-ASCII chars break the `Content-Disposition` header (exposed via CORS so the dashboard can read it).
 
 ## Frontend ↔ backend contract
 
-- Each page hard-codes `API_URL = "https://lexintake-backend.onrender.com"`; change it per page to point at a local backend.
-- Session state lives in `localStorage`: `lex_token`, `lex_ime`, `lex_email`, `lex_advokat_id` (the id is decoded client-side from the JWT payload after login/registration).
-- The client chat link is `pages/upitnik.html?advokat=<id>`.
-- Response field names used by the pages (e.g. `odgovor`, `istorija`, `zavrseno`, `prijem_id`, `detail`) are the contract — renaming them in the backend requires updating the HTML pages.
+- `docs/js/zajednicko.js` is loaded by every app page: `API_URL` (localhost vs. Render), `esc()`/`escRedovi()` (**escape everything that goes into `innerHTML`** — the data comes from clients and the model), `porukaGreske()`, `apiAdvokat()` (adds the token, logs out on 401) and the session helpers.
+- Session state lives in `localStorage`: `lex_token`, `lex_ime`, `lex_email`, `lex_advokat_id` (from `advokat_id` in the login/registration response). The client chat keeps its `sesija_id` in `sessionStorage`.
+- The client chat link is `pages/upitnik.html?k=<javni_kod>` (shown on `podesavanja.html`). Email links use `pages/tabla.html?prijem=<id>`; unauthenticated users go through `prijava.html?nazad=…` and come back.
+- Response field names used by the pages (e.g. `odgovor`, `sesija_id`, `zavrseno`, `prijem_id`, `analiza_status`, `detail`) are the contract — renaming them in the backend requires updating the HTML pages.
+- `pages/politika-privatnosti.html` is a **draft** (marked NACRT) with placeholders that must be filled and legally reviewed.
